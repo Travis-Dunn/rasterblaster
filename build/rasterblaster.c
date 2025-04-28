@@ -35,6 +35,7 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM l
 	OutputDebugStringA("WM_DESTROY\n");
 	} break;
 	case WM_CLOSE:{
+	PostQuitMessage(0);
 	OutputDebugStringA("WM_CLOSE\n");
 	} break;
 	case WM_ACTIVATEAPP:{
@@ -74,10 +75,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG msg;
 	while (1){
 		BOOL msgResult = GetMessage(&msg, 0, 0, 0);
-		if (msgResult > 0){
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
+		if (!msgResult > 0) break;
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 	return 0;
 }
