@@ -1,0 +1,26 @@
+# Compiled binaries
+*.exe
+*.obj
+*.o
+*.dll
+*.lib
+*.a
+*.so
+
+# Debug files
+*.pdb
+*.ilk
+*.exp
+
+# IDE files
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+
+# Build directories
+Debug/
+Release/
+x64/
+build/
