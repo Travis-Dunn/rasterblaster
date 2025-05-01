@@ -1,5 +1,5 @@
-#ifndef RENDERER_H
-#define RENDERER_H
+#ifndef RASTERBLASTER_H 
+#define RASTERBLASTER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +25,16 @@ typedef struct {
 	BITMAPINFO bmi;
 } RendererState;
 
-LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow);
+LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
+        LPARAM lParam);
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+        LPSTR lpCmdLine, int nCmdShow);
+void ResizeDIBSection(int w, int h);
+void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h);
 
-#endif /* RENDERER_H */
+int running = 0;
+BITMAPINFO bitmapInfo;
+void* bitmapMemory;
+int bitmapW;
+int bitmapH;
+#endif /* RASTERBLASTER_H */
