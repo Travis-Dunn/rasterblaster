@@ -59,11 +59,23 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG msg;
     running = 1;
     while (running){
-        BOOL msgResult = GetMessage(&msg, 0, 0, 0);
-        if (!msgResult > 0) break;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+        while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)){
+            if (msg.message == WM_CLOSE) running = 0;
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        RenderWeirdGradient(xanim, yanim);
+        xanim++;
+        yanim++;
+
+        HDC hdc = GetDC(windowHandle);
+        RECT clientRect;
+        GetClientRect(windowHandle, &clientRect);
+        int windowWidth = clientRect.right - clientRect.left;
+        int windowHeight = clientRect.bottom - clientRect.top;
+        PaintWindow(hdc, &clientRect, 0, 0, windowWidth, windowHeight);
+        ReleaseDC(windowHandle, hdc);
+   }
     return 0;
 }
 
@@ -84,18 +96,6 @@ void ResizeDIBSection(int w, int h){
     int bitmapMemorySize = bitmapW * bitmapH * bytesPerPixel;
     bitmapMemory = VirtualAlloc(0, bitmapMemorySize, MEM_COMMIT,
             PAGE_READWRITE);
-    int pitch = bitmapW * bytesPerPixel;
-    unsigned char* row = (unsigned char*)bitmapMemory;
-    for (int y = 0; y < bitmapH; ++y){
-        unsigned char* pixel = (unsigned char*)row;
-        for (int x = 0; x < bitmapW; ++x){
-            *pixel++ = (unsigned char)x;
-            *pixel++ = 0;
-            *pixel++ = (unsigned char)y;
-            *pixel++ = 0;
-        }
-        row += pitch;
-    }
 }
 
 void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h){
@@ -103,4 +103,19 @@ void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h){
     int windowH = r->bottom - r->top;
     StretchDIBits(hdc, x, y, bitmapW, bitmapH, x, y, windowW, windowH,
             bitmapMemory, &bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+}
+
+void RenderWeirdGradient(int xOffset, int yOffset){
+    int pitch = bitmapW * 4;
+    unsigned char* row = (unsigned char*)bitmapMemory;
+    for (int y = 0; y < bitmapH; ++y){
+        unsigned char* pixel = (unsigned char*)row;
+        for (int x = 0; x < bitmapW; ++x){
+            *pixel++ = (unsigned char)(x + xOffset);
+            *pixel++ = 0;
+            *pixel++ = (unsigned char)(y + yOffset);
+            *pixel++ = 0;
+        }
+        row += pitch;
+    }
 }
