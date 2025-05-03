@@ -1,11 +1,13 @@
 #include "rasterblaster.h"
 #include "renderer.h"
+#include "demo.h"
 
 LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, 
         LPARAM lParam){
     LRESULT ret = 0;
     switch(msg){
     case WM_SIZE:{
+/* Right now the window is not resizable, so we won't get this message */                     
     RECT clientRect;
     GetClientRect(hWnd, &clientRect);
     ResizeDIBSection(clientRect.right - clientRect.left,
@@ -51,7 +53,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         return 1;   
     }
     HWND windowHandle = CreateWindowExA(0, WindowClass.lpszClassName, "RasterBlaster", 
-            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+/*            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
+ *            CW_USEDEFAULT, CW_USEDEFAULT,*/
+            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
+            WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_WIDTH,
+            WINDOW_HEIGHT,
             0, 0, hInstance, 0);
     if (!windowHandle){
         /* TODO: logging */
@@ -60,14 +66,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG msg;
     running = 1;
 
-    RECT clientRect;
-    GetClientRect(windowHandle, &clientRect);
-    renderer.framebuffer.w = clientRect.right - clientRect.left;
-    renderer.framebuffer.h = clientRect.bottom - clientRect.top;
+    ResizeDIBSection(WINDOW_WIDTH, WINDOW_HEIGHT);
+    renderer.framebuffer.w = WINDOW_WIDTH;
+    renderer.framebuffer.h = WINDOW_HEIGHT;
     renderer.framebuffer.buf = bitmapMemory;
     renderer.running = 1;
-
-    printOffsets();
 
     while (running){
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)){
@@ -75,8 +78,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        PutPixel(24, 48);
-        PutPixel_ASM(96, 96);
+        Render();
 
         HDC hdc = GetDC(windowHandle);
         RECT clientRect;
