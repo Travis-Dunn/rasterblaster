@@ -1,6 +1,7 @@
 #include "rasterblaster.h"
 #include "renderer.h"
 #include "demo.h"
+#include "timer.h"
 
 LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, 
         LPARAM lParam){
@@ -72,6 +73,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     renderer.framebuffer.buf = bitmapMemory;
     renderer.running = 1;
 
+    InitTimer(1024);
+
     while (running){
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)){
             if (msg.message == WM_CLOSE) running = 0;
@@ -79,6 +82,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             DispatchMessage(&msg);
         }
         Render();
+        UpdateTimer();
+        printf("%.1f\n", timer.fpsAvg);
 
         HDC hdc = GetDC(windowHandle);
         RECT clientRect;
