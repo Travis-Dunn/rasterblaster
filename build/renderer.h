@@ -14,5 +14,6 @@ typedef struct {
 extern Renderer renderer;
 
 void PutPixel(int x, int y);
+extern void PutPixel_ASM(int x, int y);
 
 #endif /* RENDERER_H */

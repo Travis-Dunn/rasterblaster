@@ -1,4 +1,5 @@
 #include "rasterblaster.h"
+#include "renderer.h"
 
 LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, 
         LPARAM lParam){
@@ -58,15 +59,24 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     }
     MSG msg;
     running = 1;
+
+    RECT clientRect;
+    GetClientRect(windowHandle, &clientRect);
+    renderer.framebuffer.w = clientRect.right - clientRect.left;
+    renderer.framebuffer.h = clientRect.bottom - clientRect.top;
+    renderer.framebuffer.buf = bitmapMemory;
+    renderer.running = 1;
+
+    printOffsets();
+
     while (running){
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)){
             if (msg.message == WM_CLOSE) running = 0;
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        RenderWeirdGradient(xanim, yanim);
-        xanim++;
-        yanim++;
+        PutPixel(24, 48);
+        PutPixel_ASM(96, 96);
 
         HDC hdc = GetDC(windowHandle);
         RECT clientRect;
@@ -105,17 +115,15 @@ void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h){
             bitmapMemory, &bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
-void RenderWeirdGradient(int xOffset, int yOffset){
-    int pitch = bitmapW * 4;
-    unsigned char* row = (unsigned char*)bitmapMemory;
-    for (int y = 0; y < bitmapH; ++y){
-        unsigned char* pixel = (unsigned char*)row;
-        for (int x = 0; x < bitmapW; ++x){
-            *pixel++ = (unsigned char)(x + xOffset);
-            *pixel++ = 0;
-            *pixel++ = (unsigned char)(y + yOffset);
-            *pixel++ = 0;
-        }
-        row += pitch;
-    }
+void printOffsets(){
+    printf("Offset of renderer.running: %lu\n", (unsigned long)&(((Renderer*)0)
+                ->running));
+    printf("Offset of renderer.framebuffer: %lu\n", (unsigned long)&(((Renderer*
+                        )0)->framebuffer));
+    printf("Offset of framebuffer.w: %lu\n", (unsigned long)&(((Framebuffer*)0)
+                ->w));
+    printf("Offset of framebuffer.h: %lu\n", (unsigned long)&(((Framebuffer*)0)
+                ->h));
+    printf("Offset of framebuffer.buf %lu\n", (unsigned long)&(((Framebuffer*)0)
+                ->buf));
 }
