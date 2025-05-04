@@ -82,7 +82,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
         Update();
         Render();
-        printf("%.1f\n", timer.fpsAvg);
+/*        printf("%.1f\n", timer.fpsAvg);*/
 
         HDC hdc = GetDC(windowHandle);
         RECT clientRect;
