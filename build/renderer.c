@@ -64,3 +64,16 @@ void DrawLine_(int x0, int y0, int x1, int y1){
         }
     }
 }
+
+void DrawRect_(Point2D tl, Point2D br){
+    DrawLine(tl.x, tl.y, br.x, tl.y);
+    DrawLine(br.x, tl.y, br.x, br.y);
+    DrawLine(br.x, br.y, tl.x, br.y);
+    DrawLine(tl.x, br.y, tl.x, tl.y);
+}
+
+void DrawFilledRect_(Point2D tl, Point2D br){
+    for (int i = tl.y; i <= br.y; i++){
+        DrawLine(tl.x, i, br.x, i);
+    }
+}

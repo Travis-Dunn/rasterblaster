@@ -13,12 +13,18 @@ typedef struct {
     Framebuffer framebuffer;
 } Renderer;
 
+typedef struct {
+    int x, y;
+} Point2D;
+
 extern Renderer renderer;
 
 void PutPixel_(int x, int y);
 void PutPixel_safe(int x, int y);
 extern void PutPixel_ASM(int x, int y);
 void DrawLine_(int x0, int y0, int x1, int y1);
+void DrawRect_(Point2D tl, Point2D br);
+void DrawFilledRect_(Point2D tl, Point2D);
 
 #ifdef USE_SAFE_PIXEL_FUNCTIONS
 #define PutPixel PutPixel_safe
@@ -27,4 +33,6 @@ void DrawLine_(int x0, int y0, int x1, int y1);
 #endif
 
 #define DrawLine DrawLine_
+#define DrawRect DrawRect_
+#define DrawFilledRect DrawFilledRect_
 #endif /* RENDERER_H */
