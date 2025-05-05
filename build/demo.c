@@ -6,8 +6,9 @@ void Init(){
 }
 
 void Render(){
-    DrawLine(5, 11, 152, 98);
-    DrawLine(136, 22, 6, 82);
+    PutPixel(40, 40, RGBA_INT(255, 0, 0, 255));    
+    PutPixel(41, 40, RGBA_INT(0, 255, 0, 255));
+    PutPixel(42, 40, RGBA_INT(0, 0, 255, 255));
 }
 
 void Update(){

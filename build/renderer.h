@@ -19,20 +19,19 @@ typedef struct {
 
 extern Renderer renderer;
 
-void PutPixel_(int x, int y);
-void PutPixel_safe(int x, int y);
 extern void PutPixel_ASM(int x, int y);
-void DrawLine_(int x0, int y0, int x1, int y1);
-void DrawRect_(Point2D tl, Point2D br);
-void DrawFilledRect_(Point2D tl, Point2D);
+static inline void PutPixel_new(int x, int y, int c);
+void PutPixel_external(int x, int y, int c);
+void PutPixel_external_safe(int x, int y, int c);
 
 #ifdef USE_SAFE_PIXEL_FUNCTIONS
-#define PutPixel PutPixel_safe
+#define PutPixel PutPixel_external_safe
 #else
-#define PutPixel PutPixel_
+#define PutPixel PutPixel_external
 #endif
 
 #define DrawLine DrawLine_
 #define DrawRect DrawRect_
 #define DrawFilledRect DrawFilledRect_
+#define RGBA_INT(R, G, B, A) ((A << 24) | (R << 16) | (G << 8) | B)
 #endif /* RENDERER_H */
