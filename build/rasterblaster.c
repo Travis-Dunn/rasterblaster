@@ -63,12 +63,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         /* TODO: logging */
         return 1;
     }
+    
+    HDC hdc = GetDC(windowHandle);
+    SetStretchBltMode(hdc, COLORONCOLOR);
+    ReleaseDC(windowHandle, hdc);
+
     MSG msg;
     running = 1;
 
-    ResizeDIBSection(WINDOW_WIDTH, WINDOW_HEIGHT);
-    renderer.framebuffer.w = WINDOW_WIDTH;
-    renderer.framebuffer.h = WINDOW_HEIGHT;
+    ResizeDIBSection(INTERNAL_WIDTH, INTERNAL_HEIGHT);
+    renderer.framebuffer.w = INTERNAL_WIDTH;
+    renderer.framebuffer.h = INTERNAL_HEIGHT;
     renderer.framebuffer.buf = bitmapMemory;
     renderer.running = 1;
 
@@ -117,7 +122,8 @@ void ResizeDIBSection(int w, int h){
 void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h){
     int windowW = r->right - r->left;
     int windowH = r->bottom - r->top;
-    StretchDIBits(hdc, x, y, bitmapW, bitmapH, x, y, windowW, windowH,
+    StretchDIBits(hdc, 0, 0, windowW, windowH, 
+            0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT,
             bitmapMemory, &bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 

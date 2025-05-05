@@ -6,9 +6,8 @@ void Init(){
 }
 
 void Render(){
-    Point2D tl = {96, 96};
-    Point2D br = {128, 256};
-    DrawFilledRect(tl, br);
+    DrawLine(5, 11, 152, 98);
+    DrawLine(136, 22, 6, 82);
 }
 
 void Update(){
