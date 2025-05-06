@@ -1,4 +1,5 @@
 #include "stdlib.h"
+#include "string.h"
 #include "renderer.h"
 #include "stdio.h"
 
@@ -112,4 +113,9 @@ void DrawLine_(int x0, int y0, int x1, int y1, int c){
             return;
         }
     }
+}
+
+void ClearScreen_(unsigned char grey){
+    (void)memset(renderer.framebuffer.buf, grey, sizeof(unsigned char) *
+            renderer.framebuffer.w * renderer.framebuffer.h * 4);
 }

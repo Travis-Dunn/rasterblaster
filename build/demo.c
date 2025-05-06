@@ -7,6 +7,7 @@ void Init(){
 
 void Render(){
     int c = RGBA_INT(212, 44, 162, 255);
+    ClearScreen(52);
     DrawLine(80, 50, 0, 0, c);
     DrawLine(80, 50, 20, 0, c);
     DrawLine(80, 50, 40, 0, c);

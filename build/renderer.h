@@ -31,6 +31,8 @@ static inline void DrawHorizontalLine_(int x0, int y0, int x1, int c);
 static inline void DrawVeritcalLine_(int x0, int y0, int y1, int c);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 
+void ClearScreen_(unsigned char grey);
+
 #ifdef USE_SAFE_PIXEL_FUNCTIONS
 #define PutPixel PutPixel_external_safe
 #else
@@ -38,5 +40,6 @@ void DrawLine_(int x0, int y0, int x1, int y1, int c);
 #endif
 
 #define DrawLine DrawLine_
+#define ClearScreen ClearScreen_
 #define RGBA_INT(R, G, B, A) ((A << 24) | (R << 16) | (G << 8) | B)
 #endif /* RENDERER_H */
