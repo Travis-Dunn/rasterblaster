@@ -55,6 +55,25 @@ static inline void DrawLineOct1_(int x0, int y0, int dx, int dy, int xdir,
     }
 }
 
+static inline void DrawHorizontalLine_(int x0, int y0, int x1, int c){
+    if (x1 < x0){
+        int temp = x0;
+        x0 = x1;
+        x1 = temp;
+    }
+    while(x0 <= x1){
+        PutPixel_(x0, y0, c);
+        x0++;
+    }
+}
+
+static inline void DrawVerticalLine_(int x0, int y0, int y1, int c){
+    while(y0 <= y1){
+        PutPixel_(x0, y0, c);
+        y0++;
+    }
+}
+
 void DrawLine_(int x0, int y0, int x1, int y1, int c){
     int dx, dy, temp;
     if (y0 > y1){
@@ -67,12 +86,30 @@ void DrawLine_(int x0, int y0, int x1, int y1, int c){
     }
     dx = x1 - x0;
     dy = y1 - y0;
+    if (dy == 0){
+        DrawHorizontalLine_(x0, y0, x1, c); 
+        return;
+    }
+    if (dx == 0){
+        DrawVerticalLine_(x0, y0, y1, c);
+        return;
+    }
     if (dx > 0){
-        if (dx > dy) DrawLineOct0_(x0, y0, dx, dy, 1, c);
-        else         DrawLineOct1_(x0, y0, dx, dy, 1, c);
+        if (dx > dy){
+            DrawLineOct0_(x0, y0, dx, dy, 1, c);
+            return;
+        } else {
+            DrawLineOct1_(x0, y0, dx, dy, 1, c);
+            return;
+        }
     } else {
         dx = -dx;
-        if (dx > dy) DrawLineOct0_(x0, y0, dx, dy, -1, c);
-        else         DrawLineOct1_(x0, y0, dx, dy, -1, c);
+        if (dx > dy){
+            DrawLineOct0_(x0, y0, dx, dy, -1, c);
+            return;
+        } else {
+            DrawLineOct1_(x0, y0, dx, dy, -1, c);
+            return;
+        }
     }
 }

@@ -27,6 +27,8 @@ static inline void DrawLineOct0_(int x0, int y0, int dx, int dy, int xdir,
         int c);
 static inline void DrawLineOct1_(int x0, int y0, int dx, int dy, int xdir,
         int c);
+static inline void DrawHorizontalLine_(int x0, int y0, int x1, int c);
+static inline void DrawVeritcalLine_(int x0, int y0, int y1, int c);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 
 #ifdef USE_SAFE_PIXEL_FUNCTIONS
