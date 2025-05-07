@@ -115,6 +115,12 @@ void DrawLine_(int x0, int y0, int x1, int y1, int c){
     }
 }
 
+void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c){
+    DrawLine_(x0, y0, x1, y1, c);
+    DrawLine_(x1, y1, x2, y2, c);
+    DrawLine_(x2, y2, x0, y0, c);
+}
+
 void ClearScreen_(unsigned char grey){
     (void)memset(renderer.framebuffer.buf, grey, sizeof(unsigned char) *
             renderer.framebuffer.w * renderer.framebuffer.h * 4);
