@@ -75,6 +75,22 @@ static inline void DrawVerticalLine_(int x0, int y0, int y1, int c){
     }
 }
 
+static inline void DrawSlopeOneLine_(int x0, int y0, int y1, int c){
+    while (y0 <= y1){
+        PutPixel_(x0, y0, c);
+        x0++;
+        y0++;
+    }
+}
+
+static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c){
+    while (y0 <= y1){
+        PutPixel_(x0, y0, c);
+        y0++;
+        x0--;
+    }
+}
+
 void DrawLine_(int x0, int y0, int x1, int y1, int c){
     int dx, dy, temp;
     if (y0 > y1){
@@ -86,13 +102,21 @@ void DrawLine_(int x0, int y0, int x1, int y1, int c){
         x1 = temp;
     }
     dx = x1 - x0;
+    if (dx == 0){
+        DrawVerticalLine_(x0, y0, y1, c);
+        return;
+    }
     dy = y1 - y0;
     if (dy == 0){
         DrawHorizontalLine_(x0, y0, x1, c); 
         return;
     }
-    if (dx == 0){
-        DrawVerticalLine_(x0, y0, y1, c);
+    if (dx == dy){
+        DrawSlopeOneLine_(x0, y0, y1, c);
+        return;
+    }
+    if (-dx == dy){
+        DrawSlopeMinusOneLine_(x0, y0, y1, c);
         return;
     }
     if (dx > 0){
