@@ -1,5 +1,11 @@
 #include "demo.h"
 #include "renderer.h"
+#include "math.h"
+
+static int currentLineIndex = 0;
+static float timeAcc = 0.f;
+static float lineDisplayTime = 0.1f;
+static int totalLines = 256;
 
 void Init(){
     InitTimer(1024);
@@ -7,41 +13,24 @@ void Init(){
 
 void Render(){
     int c = RGBA_INT(212, 44, 162, 255);
-    ClearScreen(52);
-    DrawLine(80, 50, 0, 0, c);
-    DrawLine(80, 50, 20, 0, c);
-    DrawLine(80, 50, 40, 0, c);
-    DrawLine(80, 50, 60, 0, c);
-    DrawLine(80, 50, 80, 0, c);
-    DrawLine(80, 50, 100, 0, c);
-    DrawLine(80, 50, 120, 0, c);
-    DrawLine(80, 50, 140, 0, c);
-    DrawLine(80, 50, 159, 0, c);
-    DrawLine(80, 50, 159, 12, c);
-    DrawLine(80, 50, 159, 25, c);
-    DrawLine(80, 50, 159, 37, c);
-    DrawLine(80, 50, 159, 50, c);
-    DrawLine(80, 50, 159, 62, c);
-    DrawLine(80, 50, 159, 75, c);
-    DrawLine(80, 50, 159, 87, c);
-    DrawLine(80, 50, 159, 99, c);
-    DrawLine(80, 50, 140, 99, c);
-    DrawLine(80, 50, 120, 99, c);
-    DrawLine(80, 50, 100, 99, c);
-    DrawLine(80, 50, 80, 99, c);
-    DrawLine(80, 50, 60, 99, c);
-    DrawLine(80, 50, 40, 99, c);
-    DrawLine(80, 50, 20, 99, c);
-    DrawLine(80, 50, 0, 99, c);
-    DrawLine(80, 50, 0, 87, c);
-    DrawLine(80, 50, 0, 75, c);
-    DrawLine(80, 50, 0, 62, c);
-    DrawLine(80, 50, 0, 50, c);
-    DrawLine(80, 50, 0, 37, c);
-    DrawLine(80, 50, 0, 25, c);
-    DrawLine(80, 50, 0, 12, c);
+    int centerX = 80;
+    int centerY = 50;
+    int targetX, targetY, i;
+    float angle;
+
+    ClearScreen(22);
+
+    angle = (float)currentLineIndex / (float)totalLines * 6.28318f;
+    targetX = (int)(centerX + 48.f * cos(angle));
+    targetY = (int)(centerY + 48.f * sin(angle));
+    DrawLine(centerX, centerY, targetX, targetY, c);
 }
 
 void Update(){
     UpdateTimer();
+    timeAcc += timer.dt;
+    if (timeAcc >= lineDisplayTime){
+        timeAcc -= lineDisplayTime;
+        currentLineIndex = (currentLineIndex + 1) % totalLines;
+    }
 }
