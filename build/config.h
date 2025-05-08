@@ -4,3 +4,5 @@
 /*#define USE_SAFE_PIXEL_FUNCTIONS*/
 
 #endif /* CONFIG_H */
+
+#define PRINTFLOGGING

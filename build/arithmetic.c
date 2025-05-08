@@ -1,8 +1,8 @@
 #include "math.h" /* sinf, cosf, tanf */
 #include "arithmetic.h"
 
-Vertex MatVertMul(Matrix* mat, Vertex vert){
-    Vertex v;
+Vec4 MatVertMul(Matrix* mat, Vec4 vert){
+    Vec4 v;
     v.x = mat->m[0][0] * vert.x + mat->m[0][1] * vert.y + mat->m[0][2] 
         * vert.z + mat->m[0][3] * vert.w;
     v.y = mat->m[1][0] * vert.x + mat->m[1][1] * vert.y + mat->m[1][2] 

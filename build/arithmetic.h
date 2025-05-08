@@ -1,12 +1,12 @@
 typedef struct {
     float x, y, z, w;
-} Vertex;
+} Vec4;
 
 typedef struct {
     float m[4][4]; /* Column major */
 } Matrix;
 
-Vertex MatVertMul(Matrix* mat, Vertex vert);
+Vec4 MatVertMul(Matrix* mat, Vec4 vert);
 Matrix MatIdentity();
 Matrix MatMatMul(Matrix* a, Matrix* b);
 Matrix MatTranslate(float tx, float ty, float tz);
