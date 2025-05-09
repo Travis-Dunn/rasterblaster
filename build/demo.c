@@ -13,6 +13,13 @@ void Init(){
     InitTimer(1024);
 
     mesh = loadOBJ("cube.obj");
+    int i;
+    /*
+    for (i = 0; i < mesh->vertexCount; i++){
+        printf("vert %d: %.1f, %.1f, %.1f\n", i, mesh->vertices[i].x,
+                mesh->vertices[i].y, mesh->vertices[i].z);
+    }
+    */
 }
 
 void Render(){
@@ -38,45 +45,12 @@ void Render(){
     */
     Vec4 cubeVertices[8];
     
-    cubeVertices[0].x = mesh->vertices[0].x;
-    cubeVertices[0].y = mesh->vertices[0].y;
-    cubeVertices[0].z = mesh->vertices[0].z;
-    cubeVertices[0].w = mesh->vertices[0].w;
-
-    cubeVertices[1].x = mesh->vertices[1].x;
-    cubeVertices[1].y = mesh->vertices[1].y;
-    cubeVertices[1].z = mesh->vertices[1].z;
-    cubeVertices[1].w = mesh->vertices[1].w;
-
-    cubeVertices[2].x = mesh->vertices[2].x;
-    cubeVertices[2].y = mesh->vertices[2].y;
-    cubeVertices[2].z = mesh->vertices[2].z;
-    cubeVertices[2].w = mesh->vertices[2].w;
-
-    cubeVertices[3].x = mesh->vertices[3].x;
-    cubeVertices[3].y = mesh->vertices[3].y;
-    cubeVertices[3].z = mesh->vertices[3].z;
-    cubeVertices[3].w = mesh->vertices[3].w;
-
-    cubeVertices[4].x = mesh->vertices[4].x;
-    cubeVertices[4].y = mesh->vertices[4].y;
-    cubeVertices[4].z = mesh->vertices[4].z;
-    cubeVertices[4].w = mesh->vertices[4].w;
-
-    cubeVertices[5].x = mesh->vertices[5].x;
-    cubeVertices[5].y = mesh->vertices[5].y;
-    cubeVertices[5].z = mesh->vertices[5].z;
-    cubeVertices[5].w = mesh->vertices[5].w;
-
-    cubeVertices[6].x = mesh->vertices[6].x;
-    cubeVertices[6].y = mesh->vertices[6].y;
-    cubeVertices[6].z = mesh->vertices[6].z;
-    cubeVertices[6].w = mesh->vertices[6].w;
-
-    cubeVertices[7].x = mesh->vertices[7].x;
-    cubeVertices[7].y = mesh->vertices[7].y;
-    cubeVertices[7].z = mesh->vertices[7].z;
-    cubeVertices[7].w = mesh->vertices[7].w;
+    for (int i = 0; i < 8; i++) {
+        cubeVertices[i].x = mesh->positions[i * 3 + 0];
+        cubeVertices[i].y = mesh->positions[i * 3 + 1];
+        cubeVertices[i].z = mesh->positions[i * 3 + 2];
+        cubeVertices[i].w = 1.0f; // explicitly set w since positions are xyz only
+    }
 
     float cubeXPos = 0.f;
     float cubeYPos = 0.f;

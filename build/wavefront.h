@@ -10,9 +10,13 @@ typedef struct {
 } Vertex;
 
 typedef struct {
-    Vertex* vertices;
-    int vertexCount;
-    unsigned* indices;
+    float* positions;
+    int positionCount;
+    float* texcoords;
+    int texcoordCount;
+    float* normals;
+    int normalsCount;
+    int* indices;
     int indexCount;
 } Mesh;
 
