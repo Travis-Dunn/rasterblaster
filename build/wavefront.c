@@ -81,7 +81,7 @@ Mesh* loadOBJ(const char* filename) {
     objData.texcoordCount = 0;
     objData.normalCount = 0;
 
-    tempIndices = (int*)malloc(sizeof(int) * fCount * 3);
+    tempIndices = (int*)malloc(sizeof(int) * fCount * 9);
 
     if (!objData.positions || !objData.texcoords || !objData.normals || !tempIndices) {
         goto cleanup;
@@ -110,6 +110,8 @@ Mesh* loadOBJ(const char* filename) {
             for (int i = 0; i < 3 && token; ++i) {
                 if (parseFaceToken(token, &vIdx, &vtIdx, &vnIdx)) {
                     tempIndices[indexCursor++] = vIdx - 1;  // 0-based
+                    tempIndices[indexCursor++] = vtIdx - 1;
+                    tempIndices[indexCursor++] = vnIdx - 1;
                 }
                 token = strtok(NULL, " \t\r\n");
             }

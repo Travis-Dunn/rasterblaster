@@ -8,90 +8,131 @@ static float cubePitch = 0.f;
 static float cubeYaw = 0.f;
 static float cubeRoll = 0.f;
 static Mesh* mesh;
+static float cubeXPos = 0.f;
+static float cubeYPos = 0.f;
+static float cubeZPos = 5.f;
+static float cubeScaleX = 1.f;
+static float cubeScaleY = 1.f;
+static float cubeScaleZ = 1.f;
+
+
 
 void Init(){
     InitTimer(1024);
 
     mesh = loadOBJ("cube.obj");
     int i;
-    /*
-    for (i = 0; i < mesh->vertexCount; i++){
-        printf("vert %d: %.1f, %.1f, %.1f\n", i, mesh->vertices[i].x,
-                mesh->vertices[i].y, mesh->vertices[i].z);
+    for (i = 0; i < mesh->indexCount; i += 9){
+       int i0 = mesh->indices[i] + 1;
+       int i1 = mesh->indices[i + 1] + 1;
+       int i2 = mesh->indices[i + 2] + 1;
+       int i3 = mesh->indices[i + 3] + 1;
+       int i4 = mesh->indices[i + 4] + 1;
+       int i5 = mesh->indices[i + 5] + 1;
+       int i6 = mesh->indices[i + 6] + 1;
+       int i7 = mesh->indices[i + 7] + 1;
+       int i8 = mesh->indices[i + 8] + 1;
+       printf("f %d/%d/%d %d/%d/%d %d/%d/%d\n", i0, i1, i2, i3, i4, i5, i6, i7, i8);
     }
-    */
 }
 
 void Render(){
+    /* clear to grey */
     ClearScreen(22);
 
-
+    /* set up a magenta color */
     int c = RGBA_INT(212, 44, 162, 255);
+
+    /* spin the cube in place */
     cubePitch += 0.5f * timer.dt;
     cubeYaw += -0.3f * timer.dt;
     cubeRoll += 0.1f * timer.dt;
 
-    /*
-    Vec4 cubeVertices[8] = {
-        {-1.f, -1.f, -1.f, 1.f},
-        { 1.f, -1.f, -1.f, 1.f},
-        { 1.f,  1.f, -1.f, 1.f},
-        {-1.f,  1.f, -1.f, 1.f},
-        {-1.f, -1.f,  1.f, 1.f},
-        { 1.f, -1.f,  1.f, 1.f},
-        { 1.f,  1.f,  1.f, 1.f},
-        {-1.f,  1.f,  1.f, 1.f}
-    };
-    */
-    Vec4 cubeVertices[8];
+    /* each vertex is a position, texcoords, and normal index, x3 per tri */
+    int numTris = mesh->indexCount / 9;
     
-    for (int i = 0; i < 8; i++) {
-        cubeVertices[i].x = mesh->positions[i * 3 + 0];
-        cubeVertices[i].y = mesh->positions[i * 3 + 1];
-        cubeVertices[i].z = mesh->positions[i * 3 + 2];
-        cubeVertices[i].w = 1.0f; // explicitly set w since positions are xyz only
-    }
+    int i;
+    for (i = 0; i < numTris; i++) {
+        /* get indices for all three vertex positions */
+        int i0, i1, i2;
 
-    float cubeXPos = 0.f;
-    float cubeYPos = 0.f;
-    float cubeZPos = 5.f;
-    float cubeScaleX = 1.f;
-    float cubeScaleY = 1.f;
-    float cubeScaleZ = 1.f;
+        /* disregarding the texcoords and normals, as I can't use them yet */
+        i0 = mesh->indices[i * 9];
+        i1 = mesh->indices[i * 9 + 3];
+        i2 = mesh->indices[i * 9 + 6];
+        /* get pos for all three verts */ 
+        Vec4 v0, v1, v2;
+        /* debug */
+        printf("%d/%d/%d\n", i0, i1, i2);
 
-    Matrix scaleMatrix = MatScale(cubeScaleX, cubeScaleY, cubeScaleZ);
-    Matrix pitchMatrix = MatPitch(cubePitch);
-    Matrix yawMatrix = MatYaw(cubeYaw);
-    Matrix rollMatrix = MatRoll(cubeRoll);
-    Matrix transMatrix = MatTranslate(cubeXPos, cubeYPos, cubeZPos);
+        v0.x = mesh->positions[i0 * 3];
+        v0.y = mesh->positions[i0 * 3 + 1];
+        v0.z = mesh->positions[i0 * 3 + 2];
+        v0.w = 1.f;
+        v1.x = mesh->positions[i1 * 3];
+        v1.y = mesh->positions[i1 * 3 + 1];
+        v1.z = mesh->positions[i1 * 3 + 2];
+        v1.w = 1.f;
+        v2.x = mesh->positions[i2 * 3];
+        v2.y = mesh->positions[i2 * 3 + 1];
+        v2.z = mesh->positions[i2 * 3 + 2];
+        v2.w = 1.f;
+        
+        /* set up matrices */
+        Matrix scaleMatrix = MatScale(cubeScaleX, cubeScaleY, cubeScaleZ);
+        Matrix pitchMatrix = MatPitch(cubePitch);
+        Matrix yawMatrix = MatYaw(cubeYaw);
+        Matrix rollMatrix = MatRoll(cubeRoll);
+        Matrix transMatrix = MatTranslate(cubeXPos, cubeYPos, cubeZPos);
 
-    Matrix rotMatrix = MatMatMul(&yawMatrix, &pitchMatrix);
-    rotMatrix = MatMatMul(&rotMatrix, &rollMatrix);
-    Matrix cubeModelMatrix = MatMatMul(&rotMatrix, &scaleMatrix);
-    cubeModelMatrix = MatMatMul(&transMatrix, &cubeModelMatrix);
+        Matrix rotMatrix = MatMatMul(&yawMatrix, &pitchMatrix);
+        rotMatrix = MatMatMul(&rotMatrix, &rollMatrix);
+        Matrix cubeModelMatrix = MatMatMul(&rotMatrix, &scaleMatrix);
+        cubeModelMatrix = MatMatMul(&transMatrix, &cubeModelMatrix);
 
-    Matrix viewMatrix = MatIdentity();
-    Matrix perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
+        Matrix viewMatrix = MatIdentity();
+        Matrix perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
             , (float)renderer.framebuffer.w / renderer.framebuffer.h
             , 0.1f, 100.f);
 
-    for (int i = 0; i < 8; i++){
-        Vec4 v = cubeVertices[i];
-        /* model -> world */
-        v = MatVertMul(&cubeModelMatrix, v);
-        /* world -> view */
-        v = MatVertMul(&viewMatrix, v);
-        /* view -> clip */
-        v = MatVertMul(&perspectiveProjMatrix, v);
-        /* perspective divide */
-        v.x /= v.w;
-        v.y /= v.w;
-        v.z /= v.w;
-        /* NDC -> screen */
-        int screenX = (int)((v.x * 0.5f + 0.5f) * renderer.framebuffer.w);
-        int screenY = (int)((-v.y * 0.5f + 0.5f) * renderer.framebuffer.h);
+        /* set up ints for the screen space triangle coordinates */
+        int sx0, sy0, sx1, sy1, sx2, sy2;
 
-        PutPixel(screenX, screenY, c);
+        /* model -> world */
+        v0 = MatVertMul(&cubeModelMatrix, v0);
+        v1 = MatVertMul(&cubeModelMatrix, v1);
+        v2 = MatVertMul(&cubeModelMatrix, v2);
+
+        /* world -> view */
+        v0 = MatVertMul(&viewMatrix, v0);
+        v1 = MatVertMul(&viewMatrix, v1);
+        v2 = MatVertMul(&viewMatrix, v2);
+
+        /* view -> clip */
+        v0 = MatVertMul(&perspectiveProjMatrix, v0);
+        v1 = MatVertMul(&perspectiveProjMatrix, v1);
+        v2 = MatVertMul(&perspectiveProjMatrix, v2);
+
+        /* clip -> NDC (clipping not yet implemented) */
+        v0.x /= v0.w;
+        v0.y /= v0.w;
+        v0.z /= v0.w;
+        v1.x /= v1.w;
+        v1.y /= v1.w;
+        v1.z /= v1.w;
+        v2.x /= v2.w;
+        v2.y /= v2.w;
+        v2.z /= v2.w;
+
+        /* NDC -> screen */
+        sx0 = (int)((v0.x * 0.5f + 0.5f) * renderer.framebuffer.w);
+        sy0 = (int)((v0.y * 0.5f + 0.5f) * renderer.framebuffer.h);
+        sx1 = (int)((v1.x * 0.5f + 0.5f) * renderer.framebuffer.w);
+        sy1 = (int)((v1.y * 0.5f + 0.5f) * renderer.framebuffer.h);
+        sx2 = (int)((v2.x * 0.5f + 0.5f) * renderer.framebuffer.w);
+        sy2 = (int)((v2.y * 0.5f + 0.5f) * renderer.framebuffer.h);
+
+        FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);
     }
 }
 

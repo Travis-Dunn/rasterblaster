@@ -149,3 +149,28 @@ void ClearScreen_(unsigned char grey){
     (void)memset(renderer.framebuffer.buf, grey, sizeof(unsigned char) *
             renderer.framebuffer.w * renderer.framebuffer.h * 4);
 }
+
+void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color) {
+    // Compute triangle bounding box
+    int minX = (x0 < x1) ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2);
+    int minY = (y0 < y1) ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2);
+    int maxX = (x0 > x1) ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2);
+    int maxY = (y0 > y1) ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2);
+
+    // Precompute edge functions
+    int area = (x1 - x0)*(y2 - y0) - (y1 - y0)*(x2 - x0);
+    if (area == 0) return; // Degenerate triangle, skip
+
+    for (int y = minY; y <= maxY; ++y) {
+        for (int x = minX; x <= maxX; ++x) {
+            int w0 = (x1 - x0)*(y - y0) - (y1 - y0)*(x - x0);
+            int w1 = (x2 - x1)*(y - y1) - (y2 - y1)*(x - x1);
+            int w2 = (x0 - x2)*(y - y2) - (y0 - y2)*(x - x2);
+
+            // If all weights have the same sign as the area, inside triangle
+            if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
+                PutPixel(x, y, color);
+            }
+        }
+    }
+}

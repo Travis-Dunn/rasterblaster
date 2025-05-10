@@ -33,6 +33,7 @@ static inline void DrawSlopeOneLine_(int x0, int y0, int y1, int c);
 static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
+void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
 
 void ClearScreen_(unsigned char grey);
 
