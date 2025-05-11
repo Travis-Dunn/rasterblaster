@@ -2,6 +2,7 @@
 #define RENDERER_H
 
 #include "config.h"
+#include "texture.h"
 
 typedef struct {
     int w, h;
@@ -34,6 +35,9 @@ static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
+void TexturedTri(Texture* t, int x0, int y0, float u0, float v0,
+               int x1, int y1, float u1, float v1,
+               int x2, int y2, float u2, float v2);
 
 void ClearScreen_(unsigned char grey);
 

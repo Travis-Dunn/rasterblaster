@@ -3,11 +3,13 @@
 #include "arithmetic.h"
 #include "timer.h"
 #include "wavefront.h"
+#include "texture.h"
 
 static float cubePitch = 0.f;
 static float cubeYaw = 0.f;
 static float cubeRoll = 0.f;
 static Mesh* mesh;
+static Texture* cubeTex;
 static float cubeXPos = 0.f;
 static float cubeYPos = 0.f;
 static float cubeZPos = 5.f;
@@ -21,6 +23,7 @@ void Init(){
     InitTimer(1024);
 
     mesh = loadOBJ("cube.obj");
+    cubeTex =LoadBimg("marble.bimg");
     int i;
     for (i = 0; i < mesh->indexCount; i += 9){
        int i0 = mesh->indices[i] + 1;
@@ -53,18 +56,18 @@ void Render(){
     
     int i;
     for (i = 0; i < numTris; i++) {
-        /* get indices for all three vertex positions */
-        int i0, i1, i2;
+        /* get indices for pos (first 3), and texcoords (second 3) */
+        int i0, i1, i2, i3, i4, i5;
 
-        /* disregarding the texcoords and normals, as I can't use them yet */
+        /* disregarding the normals, as I can't use them yet */
         i0 = mesh->indices[i * 9];
         i1 = mesh->indices[i * 9 + 3];
         i2 = mesh->indices[i * 9 + 6];
+        i3 = mesh->indices[i * 9 + 1];
+        i4 = mesh->indices[i * 9 + 4];
+        i5 = mesh->indices[i * 9 + 7];
         /* get pos for all three verts */ 
         Vec4 v0, v1, v2;
-        /* debug */
-        printf("%d/%d/%d\n", i0, i1, i2);
-
         v0.x = mesh->positions[i0 * 3];
         v0.y = mesh->positions[i0 * 3 + 1];
         v0.z = mesh->positions[i0 * 3 + 2];
@@ -77,6 +80,14 @@ void Render(){
         v2.y = mesh->positions[i2 * 3 + 1];
         v2.z = mesh->positions[i2 * 3 + 2];
         v2.w = 1.f;
+
+        float tu0, tv0, tu1, tv1, tu2, tv2;
+        tu0 = mesh->texcoords[i3 * 2];
+        tv0 = mesh->texcoords[i3 * 2 + 1];
+        tu1 = mesh->texcoords[i4 * 2];
+        tv1 = mesh->texcoords[i4 * 2 + 1];
+        tu2 = mesh->texcoords[i5 * 2];
+        tv2 = mesh->texcoords[i5 * 2 + 1];
         
         /* set up matrices */
         Matrix scaleMatrix = MatScale(cubeScaleX, cubeScaleY, cubeScaleZ);
@@ -132,7 +143,10 @@ void Render(){
         sx2 = (int)((v2.x * 0.5f + 0.5f) * renderer.framebuffer.w);
         sy2 = (int)((v2.y * 0.5f + 0.5f) * renderer.framebuffer.h);
 
-        FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);
+        /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
+        TexturedTri(cubeTex, sx0, sy0, tu0, tv0,
+                            sx1, sy1, tu1, tv1,
+                            sx2, sy2, tu2, tv2);
     }
 }
 
