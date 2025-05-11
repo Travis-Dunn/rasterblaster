@@ -19,6 +19,7 @@ typedef struct {
 } Point2D;
 
 extern Renderer renderer;
+extern float* depthbuffer;
 
 extern void PutPixel_ASM(int x, int y);
 static inline void PutPixel_(int x, int y, int c);
@@ -35,9 +36,12 @@ static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
-void TexturedTri(Texture* t, int x0, int y0, float u0, float v0,
-               int x1, int y1, float u1, float v1,
-               int x2, int y2, float u2, float v2);
+void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
+               int x1, int y1, float z1, float u1, float v1,
+               int x2, int y2, float z2, float u2, float v2);
+int UpdateDepthBuffer(int screenX, int screenY, float depth);
+void ClearDepthBuffer();
+int InitDepthBuffer();
 
 void ClearScreen_(unsigned char grey);
 

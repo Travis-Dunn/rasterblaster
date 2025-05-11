@@ -12,7 +12,7 @@ static Mesh* mesh;
 static Texture* cubeTex;
 static float cubeXPos = 0.f;
 static float cubeYPos = 0.f;
-static float cubeZPos = 5.f;
+static float cubeZPos = -5.f;
 static float cubeScaleX = 1.f;
 static float cubeScaleY = 1.f;
 static float cubeScaleZ = 1.f;
@@ -21,6 +21,12 @@ static float cubeScaleZ = 1.f;
 
 void Init(){
     InitTimer(1024);
+
+    printf("width: %d\n", renderer.framebuffer.w);
+    printf("height: %d\n", renderer.framebuffer.h);
+    if (!InitDepthBuffer()){
+        printf("couldn't allocate for depth buffer\n");
+    }
 
     mesh = loadOBJ("cube.obj");
     cubeTex =LoadBimg("marble.bimg");
@@ -42,6 +48,7 @@ void Init(){
 void Render(){
     /* clear to grey */
     ClearScreen(22);
+    ClearDepthBuffer();
 
     /* set up a magenta color */
     int c = RGBA_INT(212, 44, 162, 255);
@@ -144,9 +151,9 @@ void Render(){
         sy2 = (int)((v2.y * 0.5f + 0.5f) * renderer.framebuffer.h);
 
         /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
-        TexturedTri(cubeTex, sx0, sy0, tu0, tv0,
-                            sx1, sy1, tu1, tv1,
-                            sx2, sy2, tu2, tv2);
+        TexturedTri(cubeTex, sx0, sy0, v0.z, tu0, tv0,
+                            sx1, sy1, v1.z, tu1, tv1,
+                            sx2, sy2, v2.z, tu2, tv2);
     }
 }
 

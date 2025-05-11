@@ -5,6 +5,22 @@
 
 Framebuffer framebuffer = {0};
 Renderer renderer = {0};
+float* depthbuffer = 0;
+
+int InitDepthBuffer(){
+    depthbuffer = (float*)malloc(sizeof(float) * renderer.framebuffer.w *
+                                                 renderer.framebuffer.h);
+    if (depthbuffer) return 1;
+    return 0;
+}
+
+int UpdateDepthBuffer(int screenX, int screenY, float depth){
+    float* address = depthbuffer + screenY * renderer.framebuffer.w + screenX;
+    if (depth < *address){
+        *address = depth;
+        return 1;
+    } else return 0;
+}
 
 static inline void PutPixel_(int x, int y, int c){
     int* pixel = (int*)renderer.framebuffer.buf +
@@ -175,9 +191,17 @@ void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color) {
     }
 }
 
-void TexturedTri(Texture* t, int x0, int y0, float u0, float v0,
-               int x1, int y1, float u1, float v1,
-               int x2, int y2, float u2, float v2)
+void ClearDepthBuffer(){
+    int numPixels = renderer.framebuffer.w * renderer.framebuffer.h;
+    int i;
+    for (i = 0; i < numPixels; i++){
+        depthbuffer[i] = 1.f;
+    }
+}
+
+void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
+               int x1, int y1, float z1, float u1, float v1,
+               int x2, int y2, float z2, float u2, float v2)
 {
     /* 1. Bounding‑box, clamped to framebuffer */
     int minX = (x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2));
@@ -207,6 +231,11 @@ void TexturedTri(Texture* t, int x0, int y0, float u0, float v0,
 
             /* Inside test (all weights in [0,1]) */
             if (l0 < 0.0f || l1 < 0.0f || l2 < 0.0f) continue;
+
+            float depth = l0 * z0 + l1 * z1 + l2 * z2;
+            
+            if (!UpdateDepthBuffer(x, y, depth)) continue;
+            
 
             /* 4. Interpolate UV */
             float u = l0 * u0 + l1 * u1 + l2 * u2;
