@@ -5,19 +5,27 @@
 #include "wavefront.h"
 #include "texture.h"
 
-static float cubePitch = 0.f;
-static float cubeYaw = 0.f;
-static float cubeRoll = 0.f;
+static float modelPitch = 0.f;
+static float modelYaw = 0.f;
+static float modelRoll = 0.f;
 static Mesh* mesh;
 static Texture* cubeTex;
-static float cubeXPos = 0.f;
-static float cubeYPos = 0.f;
-static float cubeZPos = -5.f;
-static float cubeScaleX = 15.f;
-static float cubeScaleY = 15.f;
-static float cubeScaleZ = 15.f;
+static float modelXPos = 0.f;
+static float modelYPos = 0.f;
+static float modelZPos = -5.f;
+static float modelScaleX = 15.f;
+static float modelScaleY = 15.f;
+static float modelScaleZ = 15.f;
 
-
+static Matrix scaleMatrix;
+static Matrix pitchMatrix;
+static Matrix yawMatrix;
+static Matrix rollMatrix;
+static Matrix rotMatrix;
+static Matrix transMatrix;
+static Matrix modelMatrix;
+static Matrix viewMatrix;
+static Matrix perspectiveProjMatrix;
 
 void Init(){
     InitTimer(1024);
@@ -30,21 +38,12 @@ void Init(){
 
     mesh = loadOBJ("models/carp.obj");
     cubeTex =LoadBimg("textures/carp.bimg");
-    /*
-    int i;
-    for (i = 0; i < mesh->indexCount; i += 9){
-       int i0 = mesh->indices[i] + 1;
-       int i1 = mesh->indices[i + 1] + 1;
-       int i2 = mesh->indices[i + 2] + 1;
-       int i3 = mesh->indices[i + 3] + 1;
-       int i4 = mesh->indices[i + 4] + 1;
-       int i5 = mesh->indices[i + 5] + 1;
-       int i6 = mesh->indices[i + 6] + 1;
-       int i7 = mesh->indices[i + 7] + 1;
-       int i8 = mesh->indices[i + 8] + 1;
-       printf("f %d/%d/%d %d/%d/%d %d/%d/%d\n", i0, i1, i2, i3, i4, i5, i6, i7, i8);
-    }
-    */
+
+    viewMatrix = MatIdentity();
+    perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
+            , (float)renderer.framebuffer.w / renderer.framebuffer.h
+            , 0.1f, 100.f);
+
 }
 
 void Render(){
@@ -52,13 +51,24 @@ void Render(){
     ClearScreen(22);
     ClearDepthBuffer();
 
-    /* set up a magenta color */
+    /* set up a magenta color 
     int c = RGBA_INT(212, 44, 162, 255);
+    */
 
     /* spin the cube in place */
-    cubePitch += 0.5f * timer.dt;
-    cubeYaw += -0.3f * timer.dt;
-    cubeRoll += 0.1f * timer.dt;
+    modelPitch += 0.5f * timer.dt;
+    modelYaw += -0.3f * timer.dt;
+    modelRoll += 0.1f * timer.dt;
+
+    scaleMatrix = MatScale(modelScaleX, modelScaleY, modelScaleZ);
+    pitchMatrix = MatPitch(modelPitch);
+    yawMatrix = MatYaw(modelYaw);
+    rollMatrix = MatRoll(modelRoll);
+    transMatrix = MatTranslate(modelXPos, modelYPos, modelZPos);
+    rotMatrix = MatMatMul(&rotMatrix, &rollMatrix);
+    rotMatrix = MatMatMul(&yawMatrix, &pitchMatrix);
+    modelMatrix = MatMatMul(&rotMatrix, &scaleMatrix);
+    modelMatrix = MatMatMul(&transMatrix, &modelMatrix);
 
     /* each vertex is a position, texcoords, and normal index, x3 per tri */
     int numTris = mesh->indexCount / 9;
@@ -99,29 +109,14 @@ void Render(){
         tv2 = mesh->texcoords[i5 * 2 + 1];
         
         /* set up matrices */
-        Matrix scaleMatrix = MatScale(cubeScaleX, cubeScaleY, cubeScaleZ);
-        Matrix pitchMatrix = MatPitch(cubePitch);
-        Matrix yawMatrix = MatYaw(cubeYaw);
-        Matrix rollMatrix = MatRoll(cubeRoll);
-        Matrix transMatrix = MatTranslate(cubeXPos, cubeYPos, cubeZPos);
-
-        Matrix rotMatrix = MatMatMul(&yawMatrix, &pitchMatrix);
-        rotMatrix = MatMatMul(&rotMatrix, &rollMatrix);
-        Matrix cubeModelMatrix = MatMatMul(&rotMatrix, &scaleMatrix);
-        cubeModelMatrix = MatMatMul(&transMatrix, &cubeModelMatrix);
-
-        Matrix viewMatrix = MatIdentity();
-        Matrix perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
-            , (float)renderer.framebuffer.w / renderer.framebuffer.h
-            , 0.1f, 100.f);
 
         /* set up ints for the screen space triangle coordinates */
         int sx0, sy0, sx1, sy1, sx2, sy2;
 
         /* model -> world */
-        v0 = MatVertMul(&cubeModelMatrix, v0);
-        v1 = MatVertMul(&cubeModelMatrix, v1);
-        v2 = MatVertMul(&cubeModelMatrix, v2);
+        v0 = MatVertMul(&modelMatrix, v0);
+        v1 = MatVertMul(&modelMatrix, v1);
+        v2 = MatVertMul(&modelMatrix, v2);
 
         /* world -> view */
         v0 = MatVertMul(&viewMatrix, v0);
