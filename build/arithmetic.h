@@ -1,3 +1,6 @@
+#ifndef ARITHMETIC_H
+#define ARITHMETIC_H
+
 typedef struct {
     float x, y, z, w;
 } Vec4;
@@ -17,3 +20,5 @@ Matrix MatRoll(float roll);
 Matrix MatView(float pitch, float yaw, float roll, float xPos, float yPos,
         float zPos);
 Matrix MatPerspective(float fov, float aspectRatio, float zNear, float zFar);
+
+#endif /* ARITHMETIC_H */

@@ -75,41 +75,18 @@ void Render(){
     
     int i;
     for (i = 0; i < numTris; i++) {
-        /* get indices for pos (first 3), and texcoords (second 3) */
-        int i0, i1, i2, i3, i4, i5;
+        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
+        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
+        GetTriIndices(mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7, &i8);
 
-        /* disregarding the normals, as I can't use them yet */
-        i0 = mesh->indices[i * 9];
-        i1 = mesh->indices[i * 9 + 3];
-        i2 = mesh->indices[i * 9 + 6];
-        i3 = mesh->indices[i * 9 + 1];
-        i4 = mesh->indices[i * 9 + 4];
-        i5 = mesh->indices[i * 9 + 7];
-        /* get pos for all three verts */ 
-        Vec4 v0, v1, v2;
-        v0.x = mesh->positions[i0 * 3];
-        v0.y = mesh->positions[i0 * 3 + 1];
-        v0.z = mesh->positions[i0 * 3 + 2];
-        v0.w = 1.f;
-        v1.x = mesh->positions[i1 * 3];
-        v1.y = mesh->positions[i1 * 3 + 1];
-        v1.z = mesh->positions[i1 * 3 + 2];
-        v1.w = 1.f;
-        v2.x = mesh->positions[i2 * 3];
-        v2.y = mesh->positions[i2 * 3 + 1];
-        v2.z = mesh->positions[i2 * 3 + 2];
-        v2.w = 1.f;
-
+        /* use indices to get data */ 
+        Vec4 v0, v1, v2, n0, n1, n2;
         float tu0, tv0, tu1, tv1, tu2, tv2;
-        tu0 = mesh->texcoords[i3 * 2];
-        tv0 = mesh->texcoords[i3 * 2 + 1];
-        tu1 = mesh->texcoords[i4 * 2];
-        tv1 = mesh->texcoords[i4 * 2 + 1];
-        tu2 = mesh->texcoords[i5 * 2];
-        tv2 = mesh->texcoords[i5 * 2 + 1];
-        
-        /* set up matrices */
 
+        GetVertex(mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        
         /* set up ints for the screen space triangle coordinates */
         int sx0, sy0, sx1, sy1, sx2, sy2;
 

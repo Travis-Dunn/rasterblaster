@@ -155,3 +155,32 @@ void freeMesh(Mesh* mesh) {
     }
 }
 */
+
+void GetTriIndices(Mesh* m, int triIdx, int* p0, int* p1, int* p2,
+                                        int* t0, int* t1, int* t2,
+                                        int* n0, int* n1, int* n2){
+    int base = triIdx * 9;
+    *p0 = m->indices[base + 0];
+    *t0 = m->indices[base + 1];
+    *n0 = m->indices[base + 2];
+    *p1 = m->indices[base + 3];
+    *t1 = m->indices[base + 4];
+    *n1 = m->indices[base + 5];
+    *p2 = m->indices[base + 6];
+    *t2 = m->indices[base + 7];
+    *n2 = m->indices[base + 8];
+}
+
+void GetVertex(Mesh* m, int pIdx, int tIdx, int nIdx, Vec4* p, float* u,
+                float* v, Vec4* n){
+    p->x = m->positions[pIdx * 3 + 0];
+    p->y = m->positions[pIdx * 3 + 1];
+    p->z = m->positions[pIdx * 3 + 2];
+    p->w = 1.f;
+    *u = m->texcoords[tIdx * 2 + 0];
+    *v = m->texcoords[tIdx * 2 + 1];
+    n->x = m->normals[nIdx * 3 + 0];
+    n->y = m->normals[nIdx * 3 + 1];
+    n->z = m->normals[nIdx * 3 + 2];
+    n->w = 0.f;
+}
