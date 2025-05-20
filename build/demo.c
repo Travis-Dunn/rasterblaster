@@ -13,9 +13,9 @@ static Texture* cubeTex;
 static float cubeXPos = 0.f;
 static float cubeYPos = 0.f;
 static float cubeZPos = -5.f;
-static float cubeScaleX = 1.f;
-static float cubeScaleY = 1.f;
-static float cubeScaleZ = 1.f;
+static float cubeScaleX = 15.f;
+static float cubeScaleY = 15.f;
+static float cubeScaleZ = 15.f;
 
 
 
@@ -28,8 +28,9 @@ void Init(){
         printf("couldn't allocate for depth buffer\n");
     }
 
-    mesh = loadOBJ("cube.obj");
-    cubeTex =LoadBimg("marble.bimg");
+    mesh = loadOBJ("models/carp.obj");
+    cubeTex =LoadBimg("textures/carp.bimg");
+    /*
     int i;
     for (i = 0; i < mesh->indexCount; i += 9){
        int i0 = mesh->indices[i] + 1;
@@ -43,6 +44,7 @@ void Init(){
        int i8 = mesh->indices[i + 8] + 1;
        printf("f %d/%d/%d %d/%d/%d %d/%d/%d\n", i0, i1, i2, i3, i4, i5, i6, i7, i8);
     }
+    */
 }
 
 void Render(){
