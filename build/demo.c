@@ -17,15 +17,15 @@ static float modelScaleX = 15.f;
 static float modelScaleY = 15.f;
 static float modelScaleZ = 15.f;
 
-static Matrix scaleMatrix;
-static Matrix pitchMatrix;
-static Matrix yawMatrix;
-static Matrix rollMatrix;
-static Matrix rotMatrix;
-static Matrix transMatrix;
-static Matrix modelMatrix;
-static Matrix viewMatrix;
-static Matrix perspectiveProjMatrix;
+static Mat4 scaleMatrix;
+static Mat4 pitchMatrix;
+static Mat4 yawMatrix;
+static Mat4 rollMatrix;
+static Mat4 rotMatrix;
+static Mat4 transMatrix;
+static Mat4 modelMatrix;
+static Mat4 viewMatrix;
+static Mat4 perspectiveProjMatrix;
 
 void Init(){
     InitTimer(1024);
@@ -51,24 +51,15 @@ void Render(){
     ClearScreen(22);
     ClearDepthBuffer();
 
-    /* set up a magenta color 
-    int c = RGBA_INT(212, 44, 162, 255);
-    */
-
     /* spin the cube in place */
     modelPitch += 0.5f * timer.dt;
     modelYaw += -0.3f * timer.dt;
     modelRoll += 0.1f * timer.dt;
 
-    scaleMatrix = MatScale(modelScaleX, modelScaleY, modelScaleZ);
-    pitchMatrix = MatPitch(modelPitch);
-    yawMatrix = MatYaw(modelYaw);
-    rollMatrix = MatRoll(modelRoll);
-    transMatrix = MatTranslate(modelXPos, modelYPos, modelZPos);
-    rotMatrix = MatMatMul(&rotMatrix, &rollMatrix);
-    rotMatrix = MatMatMul(&yawMatrix, &pitchMatrix);
-    modelMatrix = MatMatMul(&rotMatrix, &scaleMatrix);
-    modelMatrix = MatMatMul(&transMatrix, &modelMatrix);
+    Vec3 S = {modelScaleX, modelScaleY, modelScaleZ };
+    Vec3 R = {modelPitch, modelYaw, modelRoll};
+    Vec3 T = {modelXPos, modelYPos, modelZPos};
+    modelMatrix = MatModel(S, R, T);
 
     /* each vertex is a position, texcoords, and normal index, x3 per tri */
     int numTris = mesh->indexCount / 9;

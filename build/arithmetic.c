@@ -1,7 +1,7 @@
 #include "math.h" /* sinf, cosf, tanf */
 #include "arithmetic.h"
 
-Vec4 MatVertMul(Matrix* mat, Vec4 vert){
+Vec4 MatVertMul(Mat4* mat, Vec4 vert){
     Vec4 v;
     v.x = mat->m[0][0] * vert.x + mat->m[0][1] * vert.y + mat->m[0][2] 
         * vert.z + mat->m[0][3] * vert.w;
@@ -14,9 +14,9 @@ Vec4 MatVertMul(Matrix* mat, Vec4 vert){
     return v;
 }
 
-Matrix MatIdentity(){
+Mat4 MatIdentity(){
     int i, j;
-    Matrix mat;
+    Mat4 mat;
     for (i = 0; i < 4; i++){
         for (j = 0; j < 4; j++){
             mat.m[i][j] = (i == j) ? 1.f : 0.f; 
@@ -25,8 +25,8 @@ Matrix MatIdentity(){
     return mat;
 }
 
-Matrix MatMatMul(Matrix* a, Matrix* b){
-    Matrix mat;
+Mat4 MatMatMul(Mat4* a, Mat4* b){
+    Mat4 mat;
     int row, col, k;
     for (row = 0; row < 4; row++){
         for (col = 0; col < 4; col++){
@@ -39,24 +39,24 @@ Matrix MatMatMul(Matrix* a, Matrix* b){
     return mat;
 }
 
-Matrix MatTranslate(float tx, float ty, float tz){
-    Matrix mat = MatIdentity();
+Mat4 MatTranslate(float tx, float ty, float tz){
+    Mat4 mat = MatIdentity();
     mat.m[0][3] = tx;
     mat.m[1][3] = ty;
     mat.m[2][3] = tz;
     return mat;
 }
 
-Matrix MatScale(float sx, float sy, float sz){
-    Matrix mat = MatIdentity();
+Mat4 MatScale(float sx, float sy, float sz){
+    Mat4 mat = MatIdentity();
     mat.m[0][0] = sx;
     mat.m[1][1] = sy;
     mat.m[2][2] = sz;
     return mat;
 }
 
-Matrix MatPitch(float pitch){
-    Matrix mat = MatIdentity();
+Mat4 MatPitch(float pitch){
+    Mat4 mat = MatIdentity();
     float c = cosf(pitch);
     float s = sinf(pitch);
     mat.m[1][1] = c;
@@ -66,8 +66,8 @@ Matrix MatPitch(float pitch){
     return mat;
 }
 
-Matrix MatYaw(float yaw){
-    Matrix mat = MatIdentity();
+Mat4 MatYaw(float yaw){
+    Mat4 mat = MatIdentity();
     float c = cosf(yaw);
     float s = sinf(yaw);
     mat.m[0][0] = c;
@@ -77,8 +77,8 @@ Matrix MatYaw(float yaw){
     return mat;
 }
 
-Matrix MatRoll(float roll){
-    Matrix mat = MatIdentity();
+Mat4 MatRoll(float roll){
+    Mat4 mat = MatIdentity();
     float c = cosf(roll);
     float s = sinf(roll);
     mat.m[0][0] = c;
@@ -88,20 +88,20 @@ Matrix MatRoll(float roll){
     return mat;
 }
 
-Matrix MatView(float pitch, float yaw, float roll, float xPos, float yPos,
+Mat4 MatView(float pitch, float yaw, float roll, float xPos, float yPos,
         float zPos){
-    Matrix mPitch = MatPitch(pitch);
-    Matrix mYaw = MatYaw(yaw);
-    Matrix mRoll = MatRoll(roll);
-    Matrix mRot = MatMatMul(&mYaw, &mPitch);
+    Mat4 mPitch = MatPitch(pitch);
+    Mat4 mYaw = MatYaw(yaw);
+    Mat4 mRoll = MatRoll(roll);
+    Mat4 mRot = MatMatMul(&mYaw, &mPitch);
     mRot = MatMatMul(&mRot, &mRoll);
-    Matrix mTrans = MatTranslate(-xPos, -yPos, -zPos);
-    Matrix view = MatMatMul(&mRot, &mTrans);
+    Mat4 mTrans = MatTranslate(-xPos, -yPos, -zPos);
+    Mat4 view = MatMatMul(&mRot, &mTrans);
     return view;
 }
 
-Matrix MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
-    Matrix mat = MatIdentity();
+Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
+    Mat4 mat = MatIdentity();
     float f = 1 / tanf(fov / 2);
     float temp = zNear - zFar;
     mat.m[0][0] = f / aspectRatio;
@@ -111,4 +111,17 @@ Matrix MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
     mat.m[3][2] = -1.f;
     mat.m[3][3] = 0.f;
     return mat;
+}
+
+Mat4 MatModel(Vec3 s, Vec3 r, Vec3 t){
+    Mat4 scale = MatScale(s.x, s.y, s.z);
+    Mat4 pitch = MatPitch(r.x);
+    Mat4 yaw = MatYaw(r.y);
+    Mat4 roll = MatRoll(r.z);
+    Mat4 rot = MatMatMul(&roll, &pitch);
+    rot = MatMatMul(&yaw, &rot);
+    Mat4 model = MatMatMul(&rot, &scale);
+    Mat4 trans = MatTranslate(t.x, t.y, t.z);
+    model = MatMatMul(&trans, &model);
+    return model;
 }
