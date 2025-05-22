@@ -112,16 +112,3 @@ Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
     mat.m[3][3] = 0.f;
     return mat;
 }
-
-Mat4 MatModel(Vec3 s, Vec3 r, Vec3 t){
-    Mat4 scale = MatScale(s.x, s.y, s.z);
-    Mat4 pitch = MatPitch(r.x);
-    Mat4 yaw = MatYaw(r.y);
-    Mat4 roll = MatRoll(r.z);
-    Mat4 rot = MatMatMul(&roll, &pitch);
-    rot = MatMatMul(&yaw, &rot);
-    Mat4 model = MatMatMul(&rot, &scale);
-    Mat4 trans = MatTranslate(t.x, t.y, t.z);
-    model = MatMatMul(&trans, &model);
-    return model;
-}

@@ -17,7 +17,6 @@ Mat4 MatScale(float sx, float sy, float sz);
 Mat4 MatPitch(float pitch); /* Euler, radians */
 Mat4 MatYaw(float yaw);
 Mat4 MatRoll(float roll);
-Mat4 MatModel(Vec3 s, Vec3 r, Vec3 t);
 Mat4 MatView(float pitch, float yaw, float roll, float xPos, float yPos,
         float zPos);
 Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar);

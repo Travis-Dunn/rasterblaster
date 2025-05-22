@@ -6,24 +6,6 @@
 #include "texture.h"
 #include "model.h"
 
-static float modelPitch = 0.f;
-static float modelYaw = 0.f;
-static float modelRoll = 0.f;
-static Mesh* mesh;
-static Texture* cubeTex;
-static float modelXPos = 0.f;
-static float modelYPos = 0.f;
-static float modelZPos = -5.f;
-static float modelScaleX = 15.f;
-static float modelScaleY = 15.f;
-static float modelScaleZ = 15.f;
-
-static Mat4 scaleMatrix;
-static Mat4 pitchMatrix;
-static Mat4 yawMatrix;
-static Mat4 rollMatrix;
-static Mat4 rotMatrix;
-static Mat4 transMatrix;
 static Mat4 modelMatrix;
 static Mat4 viewMatrix;
 static Mat4 perspectiveProjMatrix;
@@ -38,21 +20,15 @@ void Init(){
         printf("couldn't allocate for depth buffer\n");
     }
 
-    mesh = loadOBJ("models/carp.obj");
-    cubeTex =LoadBimg("textures/carp.bimg");
-
     viewMatrix = MatIdentity();
     perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
             , (float)renderer.framebuffer.w / renderer.framebuffer.h
             , 0.1f, 100.f);
-    Vec3 s = {modelScaleX, modelScaleY, modelScaleZ};
-    Vec3 r = {modelPitch, modelYaw, modelRoll};
-    Vec3 t = {modelXPos, modelYPos, modelZPos};
-    model.scale = s;
-    model.rot = r;
-    model.pos = t;
-    model.mesh = mesh;
-    model.tex = cubeTex;
+    model.scale.x = model.scale.y = model.scale.z = 15.f;
+    model.rot.x = model.rot.y = model.rot.z = 0.f;
+    model.pos.x = model.pos.y = 0.f; model.pos.z = -5.f;
+    model.mesh = loadOBJ("models/carp.obj");
+    model.tex = LoadBimg("textures/carp.bimg");
 }
 
 void Render(){
@@ -68,21 +44,22 @@ void Render(){
     modelMatrix = ModelMatrix(&model);
 
     /* each vertex is a position, texcoords, and normal index, x3 per tri */
-    int numTris = mesh->indexCount / 9;
+    int numTris = model.mesh->indexCount / 9;
     
     int i;
     for (i = 0; i < numTris; i++) {
         /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
         int i0, i1, i2, i3, i4, i5, i6, i7, i8;
-        GetTriIndices(mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7, &i8);
+        GetTriIndices(model.mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
+                &i8);
 
         /* use indices to get data */ 
         Vec4 v0, v1, v2, n0, n1, n2;
         float tu0, tv0, tu1, tv1, tu2, tv2;
 
-        GetVertex(mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
-        GetVertex(mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
-        GetVertex(mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        GetVertex(model.mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(model.mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(model.mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
         
         /* set up ints for the screen space triangle coordinates */
         int sx0, sy0, sx1, sy1, sx2, sy2;
@@ -122,7 +99,7 @@ void Render(){
         sy2 = (int)((v2.y * 0.5f + 0.5f) * renderer.framebuffer.h);
 
         /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
-        TexturedTri(cubeTex, sx0, sy0, v0.z, tu0, tv0,
+        TexturedTri(model.tex, sx0, sy0, v0.z, tu0, tv0,
                             sx1, sy1, v1.z, tu1, tv1,
                             sx2, sy2, v2.z, tu2, tv2);
     }
