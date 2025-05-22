@@ -4,6 +4,7 @@
 #include "timer.h"
 #include "wavefront.h"
 #include "texture.h"
+#include "model.h"
 
 static float modelPitch = 0.f;
 static float modelYaw = 0.f;
@@ -26,6 +27,7 @@ static Mat4 transMatrix;
 static Mat4 modelMatrix;
 static Mat4 viewMatrix;
 static Mat4 perspectiveProjMatrix;
+static Model model;
 
 void Init(){
     InitTimer(1024);
@@ -43,7 +45,14 @@ void Init(){
     perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
             , (float)renderer.framebuffer.w / renderer.framebuffer.h
             , 0.1f, 100.f);
-
+    Vec3 s = {modelScaleX, modelScaleY, modelScaleZ};
+    Vec3 r = {modelPitch, modelYaw, modelRoll};
+    Vec3 t = {modelXPos, modelYPos, modelZPos};
+    model.scale = s;
+    model.rot = r;
+    model.pos = t;
+    model.mesh = mesh;
+    model.tex = cubeTex;
 }
 
 void Render(){
@@ -52,14 +61,11 @@ void Render(){
     ClearDepthBuffer();
 
     /* spin the cube in place */
-    modelPitch += 0.5f * timer.dt;
-    modelYaw += -0.3f * timer.dt;
-    modelRoll += 0.1f * timer.dt;
+    model.rot.x += 0.5f * timer.dt;
+    model.rot.y += -0.3f * timer.dt;
+    model.rot.z += 0.1f * timer.dt;
 
-    Vec3 S = {modelScaleX, modelScaleY, modelScaleZ };
-    Vec3 R = {modelPitch, modelYaw, modelRoll};
-    Vec3 T = {modelXPos, modelYPos, modelZPos};
-    modelMatrix = MatModel(S, R, T);
+    modelMatrix = ModelMatrix(&model);
 
     /* each vertex is a position, texcoords, and normal index, x3 per tri */
     int numTris = mesh->indexCount / 9;
