@@ -112,3 +112,11 @@ Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
     mat.m[3][3] = 0.f;
     return mat;
 }
+
+static inline Vec3 MakeVec3_(float x, float y, float z){
+    Vec3 v; v.x = x; v.y = y; v.z = z; return v;
+}
+
+Vec3 MakeVec3(float x, float y, float z){
+    return MakeVec3_(x, y, z);
+}

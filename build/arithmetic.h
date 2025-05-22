@@ -1,7 +1,15 @@
 #ifndef ARITHMETIC_H
 #define ARITHMETIC_H
 
+/*                                   Vec3                                     */
+/******************************************************************************/
+
 typedef struct { float x, y, z;     } Vec3;
+Vec3 MakeVec3(float x, float y, float z);
+static inline Vec3 MakeVec3_(float x, float y, float z);
+
+
+
 typedef struct { float x, y, z, w;  } Vec4;
 
 /* Column major */
