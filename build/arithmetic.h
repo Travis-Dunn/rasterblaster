@@ -1,14 +1,19 @@
 #ifndef ARITHMETIC_H
 #define ARITHMETIC_H
 
-/*                                   Vec3                                     */
-/******************************************************************************/
+/*********************************    Vec3    *********************************/
 
-typedef struct { float x, y, z;     } Vec3;
-Vec3 MakeVec3(float x, float y, float z);
-static inline Vec3 MakeVec3_(float x, float y, float z);
-
-
+typedef struct { float x, y, z; } Vec3;
+Vec3 MakeVec3                   (float x, float y, float z);
+static inline Vec3 MakeVec3_    (float x, float y, float z);
+static inline Vec3 AddVec3_     (Vec3 a, Vec3 b);
+static inline Vec3 SubVec3_     (Vec3 a, Vec3 b);
+static inline Vec3 ScaleVec3_   (Vec3 v, float s);
+static inline float DotVec3_    (Vec3 a, Vec3 b);
+static inline Vec3 CrossVec3_   (Vec3 a, Vec3 b);
+static inline float LenSqVec3_  (Vec3 v);
+static inline float LenVec3_    (Vec3 v);
+static inline Vec3 NormVec3_    (Vec3 v);
 
 typedef struct { float x, y, z, w;  } Vec4;
 

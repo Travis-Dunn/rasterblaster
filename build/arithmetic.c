@@ -1,4 +1,4 @@
-#include "math.h" /* sinf, cosf, tanf */
+#include "math.h" /* sinf, cosf, tanf, sqrtf */
 #include "arithmetic.h"
 
 Vec4 MatVertMul(Mat4* mat, Vec4 vert){
@@ -119,4 +119,38 @@ static inline Vec3 MakeVec3_(float x, float y, float z){
 
 Vec3 MakeVec3(float x, float y, float z){
     return MakeVec3_(x, y, z);
+}
+
+static inline Vec3 AddVec3_(Vec3 a, Vec3 b){
+    return MakeVec3_(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+static inline Vec3 SubVec3_(Vec3 a, Vec3 b){
+    return MakeVec3_(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+static inline Vec3 ScaleVec3_(Vec3 v, float s){
+    return MakeVec3_(v.x * s, v.y * s, v.z * s);
+}
+
+static inline float DotVec3_(Vec3 a, Vec3 b){
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+static inline Vec3 CrossVec3_(Vec3 a, Vec3 b){
+    return MakeVec3_(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x);
+}
+
+static inline float LenSqVec3_(Vec3 v){
+    return DotVec3_(v, v);
+}
+
+static inline float LenVec3_(Vec3 v){
+    return sqrtf(LenSqVec3_(v));
+}
+
+static inline Vec3 NormVec3_(Vec3 v){
+    float l = LenVec3_(v);
+    return l ? ScaleVec3_(v, 1.f / l) : v;
 }
