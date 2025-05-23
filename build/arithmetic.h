@@ -47,7 +47,7 @@ static inline Quat QuatNorm_(Quat q);
 static inline Vec3 QuatRotateVec3(Quat q, Vec3 v);
 static inline Mat4 Mat4FromQuat_(Quat q);
 Mat4 Mat4FromQuat(Quat q);
-static inline Mat4 MatLookAt_(Vec3 eye, Vec3 centre, Vec3 up);
+static inline Mat4 Mat4LookAt_(Vec3 eye, Vec3 centre, Vec3 up);
 /* right handed, opengl style */
 Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up);
 

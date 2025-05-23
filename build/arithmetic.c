@@ -227,6 +227,6 @@ static inline Mat4 Mat4LookAt_(Vec3 eye, Vec3 centre, Vec3 up){
     return m;
 }
 
-Mat4 MatLookAt(Vec3 eye, Vec3 centre, Vec3 up){
+Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up){
     return Mat4LookAt_(eye, centre, up);
 }

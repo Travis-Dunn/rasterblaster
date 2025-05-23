@@ -3,6 +3,9 @@
 
 #include "config.h"
 #include "texture.h"
+#include "camera.h"
+#include "model.h"
+#include "light.h"
 
 typedef struct {
     int w, h;
@@ -39,6 +42,8 @@ void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
                int x2, int y2, float z2, float u2, float v2);
+void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
+        Mat4 modelMatrix);
 int UpdateDepthBuffer(int screenX, int screenY, float depth);
 void ClearDepthBuffer();
 int InitDepthBuffer();

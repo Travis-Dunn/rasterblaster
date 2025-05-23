@@ -247,3 +247,66 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
         }
     }
 }
+
+void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
+        Mat4 modelMatrix){
+    int numTris = model->mesh->indexCount / 9;
+
+    int i;
+    for (i = 0; i < numTris; i++) {
+        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
+        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
+        GetTriIndices(model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
+                &i8);
+
+        /* use indices to get data */ 
+        Vec4 v0, v1, v2, n0, n1, n2;
+        float tu0, tv0, tu1, tv1, tu2, tv2;
+
+        GetVertex(model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        
+        /* set up ints for the screen space triangle coordinates */
+        int sx0, sy0, sx1, sy1, sx2, sy2;
+
+        /* model -> world */
+        v0 = MatVertMul(&modelMatrix, v0);
+        v1 = MatVertMul(&modelMatrix, v1);
+        v2 = MatVertMul(&modelMatrix, v2);
+
+        /* world -> view */
+        v0 = MatVertMul(&cam->view, v0);
+        v1 = MatVertMul(&cam->view, v1);
+        v2 = MatVertMul(&cam->view, v2);
+
+        /* view -> clip */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+
+        /* clip -> NDC (clipping not yet implemented) */
+        v0.x /= v0.w;
+        v0.y /= v0.w;
+        v0.z /= v0.w;
+        v1.x /= v1.w;
+        v1.y /= v1.w;
+        v1.z /= v1.w;
+        v2.x /= v2.w;
+        v2.y /= v2.w;
+        v2.z /= v2.w;
+
+        /* NDC -> screen */
+        sx0 = (int)((v0.x * 0.5f + 0.5f) * fb->w);
+        sy0 = (int)((v0.y * 0.5f + 0.5f) * fb->h);
+        sx1 = (int)((v1.x * 0.5f + 0.5f) * fb->w);
+        sy1 = (int)((v1.y * 0.5f + 0.5f) * fb->h);
+        sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
+        sy2 = (int)((v2.y * 0.5f + 0.5f) * fb->h);
+
+        /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
+        TexturedTri(model->tex, sx0, sy0, v0.z, tu0, tv0,
+                            sx1, sy1, v1.z, tu1, tv1,
+                            sx2, sy2, v2.z, tu2, tv2);
+    }
+}
