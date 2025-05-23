@@ -4,16 +4,16 @@
 /*********************************    Vec3    *********************************/
 
 typedef struct { float x, y, z; } Vec3;
-Vec3 MakeVec3                   (float x, float y, float z);
-static inline Vec3 MakeVec3_    (float x, float y, float z);
-static inline Vec3 AddVec3_     (Vec3 a, Vec3 b);
-static inline Vec3 SubVec3_     (Vec3 a, Vec3 b);
-static inline Vec3 ScaleVec3_   (Vec3 v, float s);
-static inline float DotVec3_    (Vec3 a, Vec3 b);
-static inline Vec3 CrossVec3_   (Vec3 a, Vec3 b);
-static inline float LenSqVec3_  (Vec3 v);
-static inline float LenVec3_    (Vec3 v);
-static inline Vec3 NormVec3_    (Vec3 v);
+Vec3 Vec3Make                   (float x, float y, float z);
+static inline Vec3 Vec3Make_    (float x, float y, float z);
+static inline Vec3 Vec3Add_     (Vec3 a, Vec3 b);
+static inline Vec3 Vec3Sub_     (Vec3 a, Vec3 b);
+static inline Vec3 Vec3Scale_   (Vec3 v, float s);
+static inline float Vec3Dot_    (Vec3 a, Vec3 b);
+static inline Vec3 Vec3Cross_   (Vec3 a, Vec3 b);
+static inline float Vec3LenSq_  (Vec3 v);
+static inline float Vec3Len_    (Vec3 v);
+static inline Vec3 Vec3Norm_    (Vec3 v);
 
 typedef struct { float x, y, z, w;  } Vec4;
 
@@ -36,11 +36,19 @@ Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar);
 
 /*********************************    Quat    *********************************/
 typedef struct { float w, x, y, z; } Quat;
-Quat MakeQuat                           (float w, float x, float y, float z);
-static inline Quat MakeQuat_            (float w, float x, float y, float z);
+Quat QuatMake                           (float w, float x, float y, float z);
+static inline Quat QuatMake_            (float w, float x, float y, float z);
 /* axis must be normalized */
 static inline Quat QuatFromAxisAngle_   (Vec3 axis, float rads);
 /* hamilton product */
 static inline Quat QuatMul_(Quat a, Quat b);
+static inline Quat QuatConj_(Quat q);
+static inline Quat QuatNorm_(Quat q);
+static inline Vec3 QuatRotateVec3(Quat q, Vec3 v);
+static inline Mat4 Mat4FromQuat_(Quat q);
+Mat4 Mat4FromQuat(Quat q);
+static inline Mat4 MatLookAt_(Vec3 eye, Vec3 centre, Vec3 up);
+/* right handed, opengl style */
+Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up);
 
 #endif /* ARITHMETIC_H */

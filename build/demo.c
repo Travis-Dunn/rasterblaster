@@ -24,9 +24,9 @@ void Init(){
     perspectiveProjMatrix = MatPerspective(0.96f /* 55 degrees in rads */
             , (float)renderer.framebuffer.w / renderer.framebuffer.h
             , 0.1f, 100.f);
-    model.scale = MakeVec3(15.f, 15.f, 15.f);
-    model.rot = MakeVec3(0.f, 0.f, 0.f);
-    model.pos = MakeVec3(0.f, 0.f, -5.f);
+    model.scale = Vec3Make(15.f, 15.f, 15.f);
+    model.rot = Vec3Make(0.f, 0.f, 0.f);
+    model.pos = Vec3Make(0.f, 0.f, -5.f);
     model.mesh = loadOBJ("models/carp.obj");
     model.tex = LoadBimg("textures/carp.bimg");
 }

@@ -113,65 +113,120 @@ Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
     return mat;
 }
 
-static inline Vec3 MakeVec3_(float x, float y, float z){
+static inline Vec3 Vec3Make_(float x, float y, float z){
     Vec3 v; v.x = x; v.y = y; v.z = z; return v;
 }
 
-Vec3 MakeVec3(float x, float y, float z){
-    return MakeVec3_(x, y, z);
+Vec3 Vec3Make(float x, float y, float z){
+    return Vec3Make_(x, y, z);
 }
 
-static inline Vec3 AddVec3_(Vec3 a, Vec3 b){
-    return MakeVec3_(a.x + b.x, a.y + b.y, a.z + b.z);
+static inline Vec3 Vec3Add_(Vec3 a, Vec3 b){
+    return Vec3Make_(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
-static inline Vec3 SubVec3_(Vec3 a, Vec3 b){
-    return MakeVec3_(a.x - b.x, a.y - b.y, a.z - b.z);
+static inline Vec3 Vec3Sub_(Vec3 a, Vec3 b){
+    return Vec3Make_(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-static inline Vec3 ScaleVec3_(Vec3 v, float s){
-    return MakeVec3_(v.x * s, v.y * s, v.z * s);
+static inline Vec3 Vec3Scale_(Vec3 v, float s){
+    return Vec3Make_(v.x * s, v.y * s, v.z * s);
 }
 
-static inline float DotVec3_(Vec3 a, Vec3 b){
+static inline float Vec3Dot_(Vec3 a, Vec3 b){
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-static inline Vec3 CrossVec3_(Vec3 a, Vec3 b){
-    return MakeVec3_(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
+static inline Vec3 Vec3Cross_(Vec3 a, Vec3 b){
+    return Vec3Make_(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
             a.x * b.y - a.y * b.x);
 }
 
-static inline float LenSqVec3_(Vec3 v){
-    return DotVec3_(v, v);
+static inline float Vec3LenSq_(Vec3 v){
+    return Vec3Dot_(v, v);
 }
 
-static inline float LenVec3_(Vec3 v){
-    return sqrtf(LenSqVec3_(v));
+static inline float Vec3Len_(Vec3 v){
+    return sqrtf(Vec3LenSq_(v));
 }
 
-static inline Vec3 NormVec3_(Vec3 v){
-    float l = LenVec3_(v);
-    return l ? ScaleVec3_(v, 1.f / l) : v;
+static inline Vec3 Vec3Norm_(Vec3 v){
+    float l = Vec3Len_(v);
+    return l ? Vec3Scale_(v, 1.f / l) : v;
 }
 
-static inline Quat MakeQuat_(float w, float x, float y, float z){
+static inline Quat QuatMake_(float w, float x, float y, float z){
     Quat q; q.w = 1.f; q.x = 0.f; q.y = 0.f; q.z = 0.f; return q;
 }
 
-Quat MakeQuat(float w, float x, float y, float z){
-    return MakeQuat_(w, x, y, z);
+Quat QuatMake(float w, float x, float y, float z){
+    return QuatMake_(w, x, y, z);
 }
 
 static inline Quat QuatFromAxisAngle_(Vec3 axis, float rads){
     float h = rads * .5f;
     float s = sinf(h);
-    return MakeQuat_(cosf(h), axis.x * s, axis.y * s, axis.z * s);
+    return QuatMake_(cosf(h), axis.x * s, axis.y * s, axis.z * s);
 }
 
 static inline Quat QuatMul_(Quat a, Quat b){
-    return MakeQuat_(a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    return QuatMake_(a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
                      a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
                      a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
                      a.w * b.z + a.x * b.y + a.y * b.x + a.z * b.w);
+}
+
+static inline Quat QuatConj_(Quat q){
+    return QuatMake_(q.w, -q.x, -q.y, -q.z);
+}
+
+static inline Quat QuatNorm_(Quat q){
+    float m = sqrtf(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+    return m ? QuatMake_(q.w / m, q.x / m, q.y / m, q.z / m) : q;
+}
+
+static inline Vec3 QuatRotateVec3_(Quat q, Vec3 v){
+    Quat p = QuatMake_(0.f, v.x, v.y, v.z);
+    Quat r = QuatMul_(QuatMul_(q, p), QuatConj_(q));
+    return Vec3Make_(r.z, r.y, r.z);
+}
+
+static inline Mat4 Mat4FromQuat_(Quat q){
+    q = QuatNorm_(q);
+    float xx = q.x * q.x,   yy = q.y * q.y,     zz = q.z * q.z;
+    float xy = q.x * q.y,   xz = q.x * q.z,     yz = q.y * q.z;
+    float wx = q.w * q.x,   wy = q.w * q.y,     wz = q.w * q.z;
+    Mat4  m = MatIdentity();
+    m.m[0][0] = 1.f - 2.f * (yy + zz);
+    m.m[0][1] =       2.f * (xy - wz);
+    m.m[0][2] =       2.f * (xz + wy);
+    m.m[1][0] =       2.f * (xy + wz);
+    m.m[1][1] = 1.f - 2.f * (xx + zz);
+    m.m[1][2] =       2.f * (yz - wx);
+    m.m[2][0] =       2.f * (xz - wy);
+    m.m[2][1] =       2.f * (yz + wx);
+    m.m[2][2] = 1.f - 2.f * (xx + yy);
+    return m;
+}
+
+Mat4 Mat4FromQuat(Quat q){
+    return Mat4FromQuat_(q);
+}
+
+static inline Mat4 Mat4LookAt_(Vec3 eye, Vec3 centre, Vec3 up){
+    Vec3 f = Vec3Norm_(Vec3Sub_(centre, eye));
+    Vec3 s = Vec3Norm_(Vec3Cross_(f, up));
+    Vec3 u = Vec3Cross_(s, f);
+    Mat4 m = MatIdentity();
+    m.m[0][0] =     s.x;    m.m[0][1] =     s.y;    m.m[0][2] =     s.z;
+    m.m[1][0] =     u.x;    m.m[1][1] =     u.y;    m.m[1][2] =     u.z;
+    m.m[2][0] =    -f.x;    m.m[2][1] =    -f.y;    m.m[2][2] =    -f.z;
+    m.m[0][3] = -Vec3Dot_(s, eye);
+    m.m[1][3] = -Vec3Dot_(u, eye);
+    m.m[2][3] =  Vec3Dot_(f, eye);
+    return m;
+}
+
+Mat4 MatLookAt(Vec3 eye, Vec3 centre, Vec3 up){
+    return Mat4LookAt_(eye, centre, up);
 }
