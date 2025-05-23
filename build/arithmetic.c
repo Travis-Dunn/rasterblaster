@@ -154,3 +154,24 @@ static inline Vec3 NormVec3_(Vec3 v){
     float l = LenVec3_(v);
     return l ? ScaleVec3_(v, 1.f / l) : v;
 }
+
+static inline Quat MakeQuat_(float w, float x, float y, float z){
+    Quat q; q.w = 1.f; q.x = 0.f; q.y = 0.f; q.z = 0.f; return q;
+}
+
+Quat MakeQuat(float w, float x, float y, float z){
+    return MakeQuat_(w, x, y, z);
+}
+
+static inline Quat QuatFromAxisAngle_(Vec3 axis, float rads){
+    float h = rads * .5f;
+    float s = sinf(h);
+    return MakeQuat_(cosf(h), axis.x * s, axis.y * s, axis.z * s);
+}
+
+static inline Quat QuatMul_(Quat a, Quat b){
+    return MakeQuat_(a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+                     a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+                     a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+                     a.w * b.z + a.x * b.y + a.y * b.x + a.z * b.w);
+}

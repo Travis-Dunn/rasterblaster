@@ -34,4 +34,13 @@ Mat4 MatView(float pitch, float yaw, float roll, float xPos, float yPos,
         float zPos);
 Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar);
 
+/*********************************    Quat    *********************************/
+typedef struct { float w, x, y, z; } Quat;
+Quat MakeQuat                           (float w, float x, float y, float z);
+static inline Quat MakeQuat_            (float w, float x, float y, float z);
+/* axis must be normalized */
+static inline Quat QuatFromAxisAngle_   (Vec3 axis, float rads);
+/* hamilton product */
+static inline Quat QuatMul_(Quat a, Quat b);
+
 #endif /* ARITHMETIC_H */
