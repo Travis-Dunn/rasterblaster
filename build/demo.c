@@ -31,7 +31,8 @@ void Init(){
     cam.proj = MatPerspective(cam.fovRads,
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
-    light.rgb = RGBA_INT(255, 255, 255, 255);
+    light.type = LIGHT_AMBIENT;
+    light.rgb = RGBA_INT(128, 96, 222, 255);
     model.scale = Vec3Make(15.f, 15.f, 15.f);
     model.rot = Vec3Make(0.f, 0.f, 0.f);
     model.pos = Vec3Make(0.f, 0.f, -5.f);
@@ -50,7 +51,7 @@ void Render(){
     model.rot.z += 0.1f * timer.dt;
 
     modelMatrix = ModelMatrix(&model);
-    DrawModelLambert(&cam, &model, &renderer.framebuffer, &light,
+    DrawModelLambert(&cam, &model, &renderer.framebuffer, &light, 1,
                 modelMatrix);
 }
 

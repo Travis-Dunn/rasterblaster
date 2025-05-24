@@ -249,7 +249,7 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
 }
 
 void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
-        Mat4 modelMatrix){
+        int nLights, Mat4 modelMatrix){
     int numTris = model->mesh->indexCount / 9;
 
     int i;
@@ -305,8 +305,84 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         sy2 = (int)((v2.y * 0.5f + 0.5f) * fb->h);
 
         /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
-        TexturedTri(model->tex, sx0, sy0, v0.z, tu0, tv0,
+        TexturedLambertTri_(model->tex, l, nLights, sx0, sy0, v0.z, tu0, tv0,
                             sx1, sy1, v1.z, tu1, tv1,
                             sx2, sy2, v2.z, tu2, tv2);
     }
 }
+
+static inline void TexturedLambertTri_(Texture* t, Light* l, int nLights,
+        int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
+        float u1, float v1, int x2, int y2, float z2, float u2, float v2){
+    /* 1. Bounding‑box, clamped to framebuffer */
+    int minX = (x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2));
+    int minY = (y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2));
+    int maxX = (x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2));
+    int maxY = (y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2));
+
+    if (minX < 0) minX = 0;
+    if (minY < 0) minY = 0;
+    if (maxX >= renderer.framebuffer.w) maxX = renderer.framebuffer.w - 1;
+    if (maxY >= renderer.framebuffer.h) maxY = renderer.framebuffer.h - 1;
+
+    /* 2. Pre‑compute denominator and edge deltas */
+    float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+    if (denom == 0.0f) return;          /* Degenerate triangle */
+
+    int i;
+    int rAcc = 0;
+    int gAcc = 0;
+    int bAcc = 0;
+    for (i = 0; i < nLights; i++){
+       if (l[i].type == LIGHT_AMBIENT){
+            rAcc += GETR(l[i].rgb);
+            gAcc += GETG(l[i].rgb);
+            bAcc += GETB(l[i].rgb);
+       }
+    }
+    rAcc = rAcc > 255 ? 255 : rAcc;
+    gAcc = gAcc > 255 ? 255 : gAcc;
+    bAcc = bAcc > 255 ? 255 : bAcc;
+
+    float invDen = 1.0f / denom;
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            /* 3. Barycentric weights (affine) */
+            float l0 = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) * invDen;
+            float l1 = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) * invDen;
+            float l2 = 1.0f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < 0.0f || l1 < 0.0f || l2 < 0.0f) continue;
+
+            float depth = l0 * z0 + l1 * z1 + l2 * z2;
+            
+            if (!UpdateDepthBuffer(x, y, depth)) continue;
+            
+
+            /* 4. Interpolate UV */
+            float u = l0 * u0 + l1 * u1 + l2 * u2;
+            float v = l0 * v0 + l1 * v1 + l2 * v2;
+
+            /* 5. Sample & draw */
+            int texel = SampleTex(t, u, v);
+
+            float tR = GETR(texel) / 255.f;
+            float tG = GETG(texel) / 255.f;
+            float tB = GETB(texel) / 255.f;
+            float lR = rAcc / 255.f;
+            float lG = gAcc / 255.f;
+            float lB = bAcc / 255.f;
+            unsigned char fR = (unsigned char)((tR * lR) * 255);
+            unsigned char fG = (unsigned char)((tG * lG) * 255);
+            unsigned char fB = (unsigned char)((tB * lB) * 255);
+
+            PutPixel(x, y, RGBA_INT(fR, fG, fB, 255));
+        }
+    }
+}
+
+
