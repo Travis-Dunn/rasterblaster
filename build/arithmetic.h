@@ -8,12 +8,16 @@ Vec3 Vec3Make                   (float x, float y, float z);
 static inline Vec3 Vec3Make_    (float x, float y, float z);
 static inline Vec3 Vec3Add_     (Vec3 a, Vec3 b);
 static inline Vec3 Vec3Sub_     (Vec3 a, Vec3 b);
+Vec3 Vec3Sub                    (Vec3 a, Vec3 b);
 static inline Vec3 Vec3Scale_   (Vec3 v, float s);
 static inline float Vec3Dot_    (Vec3 a, Vec3 b);
+float Vec3Dot                   (Vec3 a, Vec3 b);
 static inline Vec3 Vec3Cross_   (Vec3 a, Vec3 b);
+Vec3 Vec3Cross                  (Vec3 a, Vec3 b);
 static inline float Vec3LenSq_  (Vec3 v);
 static inline float Vec3Len_    (Vec3 v);
 static inline Vec3 Vec3Norm_    (Vec3 v);
+Vec3 Vec3Norm                   (Vec3 v);
 
 typedef struct { float x, y, z, w;  } Vec4;
 

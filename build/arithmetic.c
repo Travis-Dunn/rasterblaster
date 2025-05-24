@@ -129,6 +129,10 @@ static inline Vec3 Vec3Sub_(Vec3 a, Vec3 b){
     return Vec3Make_(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
+Vec3 Vec3Sub(Vec3 a, Vec3 b){
+    return Vec3Sub_(a, b);
+}
+
 static inline Vec3 Vec3Scale_(Vec3 v, float s){
     return Vec3Make_(v.x * s, v.y * s, v.z * s);
 }
@@ -137,9 +141,17 @@ static inline float Vec3Dot_(Vec3 a, Vec3 b){
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
+float Vec3Dot(Vec3 a, Vec3 b){
+    return Vec3Dot_(a, b);
+}
+
 static inline Vec3 Vec3Cross_(Vec3 a, Vec3 b){
     return Vec3Make_(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
             a.x * b.y - a.y * b.x);
+}
+
+Vec3 Vec3Cross(Vec3 a, Vec3 b){
+    return Vec3Cross_(a, b);
 }
 
 static inline float Vec3LenSq_(Vec3 v){
@@ -153,6 +165,10 @@ static inline float Vec3Len_(Vec3 v){
 static inline Vec3 Vec3Norm_(Vec3 v){
     float l = Vec3Len_(v);
     return l ? Vec3Scale_(v, 1.f / l) : v;
+}
+
+Vec3 Vec3Norm(Vec3 v){
+    return Vec3Norm_(v);
 }
 
 static inline Quat QuatMake_(float w, float x, float y, float z){

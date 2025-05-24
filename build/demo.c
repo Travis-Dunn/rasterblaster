@@ -31,8 +31,7 @@ void Init(){
     cam.proj = MatPerspective(cam.fovRads,
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
-    light.type = LIGHT_AMBIENT;
-    light.rgb = RGBA_INT(128, 96, 222, 255);
+    light = MakeAmbient(224, 160, 90);
     model.scale = Vec3Make(15.f, 15.f, 15.f);
     model.rot = Vec3Make(0.f, 0.f, 0.f);
     model.pos = Vec3Make(0.f, 0.f, -5.f);

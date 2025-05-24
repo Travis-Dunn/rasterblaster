@@ -280,6 +280,24 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         v1 = MatVertMul(&cam->view, v1);
         v2 = MatVertMul(&cam->view, v2);
 
+        /* calculate tri normal */
+        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
+        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
+        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
+        Vec3 side0 = Vec3Sub(v1_, v0_);
+        Vec3 side1 = Vec3Sub(v2_, v0_);
+        Vec3 normal = Vec3Cross(side0, side1);
+        
+        /* reject tris facing away from camera */
+
+        if (!(normal.z > 0.f)) continue;
+        /*
+        float similarity = Vec3Dot(Vec3Norm(normal), cam->inverseDir);
+        */
+
+        /* use normal for calculating net lighting (lambert) */
+        /* to be implemented... */
+
         /* view -> clip */
         v0 = MatVertMul(&cam->proj, v0);
         v1 = MatVertMul(&cam->proj, v1);
@@ -304,7 +322,6 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
         sy2 = (int)((v2.y * 0.5f + 0.5f) * fb->h);
 
-        /*FilledTri(sx0, sy0, sx1, sy1, sx2, sy2, c);*/
         TexturedLambertTri_(model->tex, l, nLights, sx0, sy0, v0.z, tu0, tv0,
                             sx1, sy1, v1.z, tu1, tv1,
                             sx2, sy2, v2.z, tu2, tv2);
@@ -329,6 +346,7 @@ static inline void TexturedLambertTri_(Texture* t, Light* l, int nLights,
     float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
     if (denom == 0.0f) return;          /* Degenerate triangle */
 
+    /* accumulate contribution from ambient lights */
     int i;
     int rAcc = 0;
     int gAcc = 0;
