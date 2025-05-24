@@ -291,10 +291,34 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         /* reject tris facing away from camera */
 
         if (!(normal.z > 0.f)) continue;
-        /*
         float similarity = Vec3Dot(Vec3Norm(normal), cam->inverseDir);
-        */
-
+        int i;
+        int rAcc = 0;
+        int gAcc = 0;
+        int bAcc = 0;
+        for (i = 0; i < nLights; i++){
+            if (l[i].type == LIGHT_AMBIENT){
+                rAcc += GETR(l[i].rgb);
+                gAcc += GETG(l[i].rgb);
+                bAcc += GETB(l[i].rgb);
+            }
+            if (l[i].type == LIGHT_DIRECTIONAL){
+                float s = Vec3Dot(Vec3Norm(normal), Vec3Norm(l[i].inverseDir));
+                s = s > 0.f ? s : 0.f;
+                s = s <= 1.f ? s : 1.f;
+                rAcc += (int)(GETR(l[i].rgb) * s);
+                gAcc += (int)(GETG(l[i].rgb) * s);
+                bAcc += (int)(GETB(l[i].rgb) * s);
+            }
+        }
+        rAcc = rAcc > 255 ? 255 : rAcc;
+        gAcc = gAcc > 255 ? 255 : gAcc;
+        bAcc = bAcc > 255 ? 255 : bAcc;
+        float lR = rAcc / 255.f;
+        float lG = gAcc / 255.f;
+        float lB = bAcc / 255.f;
+        Vec3 color = Vec3Make(lR, lG, lB); 
+ 
         /* use normal for calculating net lighting (lambert) */
         /* to be implemented... */
 
@@ -322,13 +346,13 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
         sy2 = (int)((v2.y * 0.5f + 0.5f) * fb->h);
 
-        TexturedLambertTri_(model->tex, l, nLights, sx0, sy0, v0.z, tu0, tv0,
+        TexturedLambertTri_(model->tex, color, sx0, sy0, v0.z, tu0, tv0,
                             sx1, sy1, v1.z, tu1, tv1,
                             sx2, sy2, v2.z, tu2, tv2);
     }
 }
 
-static inline void TexturedLambertTri_(Texture* t, Light* l, int nLights,
+static inline void TexturedLambertTri_(Texture* t, Vec3 color,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2){
     /* 1. Bounding‑box, clamped to framebuffer */
@@ -347,22 +371,7 @@ static inline void TexturedLambertTri_(Texture* t, Light* l, int nLights,
     if (denom == 0.0f) return;          /* Degenerate triangle */
 
     /* accumulate contribution from ambient lights */
-    int i;
-    int rAcc = 0;
-    int gAcc = 0;
-    int bAcc = 0;
-    for (i = 0; i < nLights; i++){
-       if (l[i].type == LIGHT_AMBIENT){
-            rAcc += GETR(l[i].rgb);
-            gAcc += GETG(l[i].rgb);
-            bAcc += GETB(l[i].rgb);
-       }
-    }
-    rAcc = rAcc > 255 ? 255 : rAcc;
-    gAcc = gAcc > 255 ? 255 : gAcc;
-    bAcc = bAcc > 255 ? 255 : bAcc;
-
-    float invDen = 1.0f / denom;
+   float invDen = 1.0f / denom;
 
     for (int y = minY; y <= maxY; ++y)
     {
@@ -391,12 +400,9 @@ static inline void TexturedLambertTri_(Texture* t, Light* l, int nLights,
             float tR = GETR(texel) / 255.f;
             float tG = GETG(texel) / 255.f;
             float tB = GETB(texel) / 255.f;
-            float lR = rAcc / 255.f;
-            float lG = gAcc / 255.f;
-            float lB = bAcc / 255.f;
-            unsigned char fR = (unsigned char)((tR * lR) * 255);
-            unsigned char fG = (unsigned char)((tG * lG) * 255);
-            unsigned char fB = (unsigned char)((tB * lB) * 255);
+            unsigned char fR = (unsigned char)((tR * color.x) * 255);
+            unsigned char fG = (unsigned char)((tG * color.y) * 255);
+            unsigned char fB = (unsigned char)((tB * color.z) * 255);
 
             PutPixel(x, y, RGBA_INT(fR, fG, fB, 255));
         }

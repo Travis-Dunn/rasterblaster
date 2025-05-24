@@ -12,6 +12,8 @@ typedef struct {
     Vec3 right, up, forward;
     Quat rot;
     Mat4 view, proj;
+
+    Vec3 inverseDir;
 } Camera;
 
 #endif /* CAMERA_H */

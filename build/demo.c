@@ -31,7 +31,8 @@ void Init(){
     cam.proj = MatPerspective(cam.fovRads,
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
-    light = MakeAmbient(224, 160, 90);
+    cam.inverseDir = Vec3Norm(Vec3Make(0, 0, 1));
+    light = MakeDirectional(255, 255, 255, Vec3Norm(Vec3Make(1, .5f, -1)));
     model.scale = Vec3Make(15.f, 15.f, 15.f);
     model.rot = Vec3Make(0.f, 0.f, 0.f);
     model.pos = Vec3Make(0.f, 0.f, -5.f);
