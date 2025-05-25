@@ -204,7 +204,7 @@ static inline Quat QuatNorm_(Quat q){
 static inline Vec3 QuatRotateVec3_(Quat q, Vec3 v){
     Quat p = QuatMake_(0.f, v.x, v.y, v.z);
     Quat r = QuatMul_(QuatMul_(q, p), QuatConj_(q));
-    return Vec3Make_(r.z, r.y, r.z);
+    return Vec3Make_(r.x, r.y, r.z);
 }
 
 static inline Mat4 Mat4FromQuat_(Quat q){
