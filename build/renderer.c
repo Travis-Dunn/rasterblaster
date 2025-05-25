@@ -340,11 +340,11 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
 
         /* NDC -> screen */
         sx0 = (int)((v0.x * 0.5f + 0.5f) * fb->w);
-        sy0 = (int)((v0.y * 0.5f + 0.5f) * fb->h);
+        sy0 = (int)((0.5f - v0.y * 0.5f) * fb->h);
         sx1 = (int)((v1.x * 0.5f + 0.5f) * fb->w);
-        sy1 = (int)((v1.y * 0.5f + 0.5f) * fb->h);
+        sy1 = (int)((0.5f - v1.y * 0.5f) * fb->h);
         sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
-        sy2 = (int)((v2.y * 0.5f + 0.5f) * fb->h);
+        sy2 = (int)((0.5f - v2.y * 0.5f) * fb->h);
 
         TexturedLambertTri_(model->tex, color, sx0, sy0, v0.z, tu0, tv0,
                             sx1, sy1, v1.z, tu1, tv1,

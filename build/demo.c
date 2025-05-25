@@ -10,7 +10,7 @@
 static Mat4 modelMatrix;
 static Model model;
 static Camera cam;
-static Light light;
+static Light light[8];
 
 void Init(){
     InitTimer(1024);
@@ -32,7 +32,8 @@ void Init(){
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
     cam.inverseDir = Vec3Norm(Vec3Make(0, 0, 1));
-    light = MakeDirectional(255, 255, 255, Vec3Norm(Vec3Make(1, .5f, -1)));
+    light[0] = MakeDirectional(192, 192, 192, Vec3Norm(Vec3Make(1, -.5f, -1)));
+    light[1] = MakeAmbient(64, 64, 64);
     model.scale = Vec3Make(15.f, 15.f, 15.f);
     model.rot = Vec3Make(0.f, 0.f, 0.f);
     model.pos = Vec3Make(0.f, 0.f, -5.f);
@@ -45,13 +46,13 @@ void Render(){
     ClearScreen(22);
     ClearDepthBuffer();
 
-    /* spin the cube in place */
+    /* some spinning */
     model.rot.x += 0.5f * timer.dt;
     model.rot.y += -0.3f * timer.dt;
     model.rot.z += 0.1f * timer.dt;
 
     modelMatrix = ModelMatrix(&model);
-    DrawModelLambert(&cam, &model, &renderer.framebuffer, &light, 1,
+    DrawModelLambert(&cam, &model, &renderer.framebuffer, &light[0], 2,
                 modelMatrix);
 }
 
