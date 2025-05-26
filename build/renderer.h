@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "model.h"
 #include "light.h"
+#include "obj3d.h"
 
 typedef struct {
     int w, h;
@@ -42,12 +43,12 @@ void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
                int x2, int y2, float z2, float u2, float v2);
-static inline void TexturedLambertTri_(Texture* t, Vec3 color,
+static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2);
 
-void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
-        int nLights, Mat4 modelMatrix);
+void DrawModelLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
+        int nLights);
 int UpdateDepthBuffer(int screenX, int screenY, float depth);
 void ClearDepthBuffer();
 int InitDepthBuffer();

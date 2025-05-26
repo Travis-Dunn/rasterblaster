@@ -1,6 +1,7 @@
 #include "rasterblaster.h"
 #include "renderer.h"
 #include "demo.h"
+#include "mouse.h"
 
 LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, 
         LPARAM lParam){
@@ -34,6 +35,16 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
     GetClientRect(hWnd, &clientRect);
     PaintWindow(hdc, &clientRect, paint.rcPaint.left, paint.rcPaint.top, w, h);
     EndPaint(hWnd, &paint);
+    } break;
+    case WM_LBUTTONDOWN:{
+        int mouseX = (int)LOWORD(lParam);
+        int mouseY = (int)HIWORD(lParam);
+        int ret = GetClicked(mouseX, mouseY);
+        if (ret == 12){
+            printf("clicked on the carpfish!\n");
+        } else {
+            printf("clicked elsewhere, more specifically: %d, %d\n", mouseX, mouseY);
+        }
     } break;
     default:{
     ret = DefWindowProc(hWnd, msg, wParam, lParam);

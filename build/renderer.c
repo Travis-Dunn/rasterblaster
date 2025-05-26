@@ -2,6 +2,7 @@
 #include "string.h"
 #include "renderer.h"
 #include "stdio.h"
+#include "mouse.h"
 
 Framebuffer framebuffer = {0};
 Renderer renderer = {0};
@@ -248,32 +249,32 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
     }
 }
 
-void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
-        int nLights, Mat4 modelMatrix){
-    int numTris = model->mesh->indexCount / 9;
+void DrawModelLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
+        int nLights){
+    int numTris = obj->model->mesh->indexCount / 9;
 
     int i;
     for (i = 0; i < numTris; i++) {
         /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
         int i0, i1, i2, i3, i4, i5, i6, i7, i8;
-        GetTriIndices(model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
+        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
                 &i8);
 
         /* use indices to get data */ 
         Vec4 v0, v1, v2, n0, n1, n2;
         float tu0, tv0, tu1, tv1, tu2, tv2;
 
-        GetVertex(model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
-        GetVertex(model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
-        GetVertex(model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
         
         /* set up ints for the screen space triangle coordinates */
         int sx0, sy0, sx1, sy1, sx2, sy2;
 
         /* model -> world */
-        v0 = MatVertMul(&modelMatrix, v0);
-        v1 = MatVertMul(&modelMatrix, v1);
-        v2 = MatVertMul(&modelMatrix, v2);
+        v0 = MatVertMul(&obj->matModel, v0);
+        v1 = MatVertMul(&obj->matModel, v1);
+        v2 = MatVertMul(&obj->matModel, v2);
 
         /* world -> view */
         v0 = MatVertMul(&cam->view, v0);
@@ -346,13 +347,12 @@ void DrawModelLambert(Camera* cam, Model* model, Framebuffer* fb, Light* l,
         sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
         sy2 = (int)((0.5f - v2.y * 0.5f) * fb->h);
 
-        TexturedLambertTri_(model->tex, color, sx0, sy0, v0.z, tu0, tv0,
-                            sx1, sy1, v1.z, tu1, tv1,
-                            sx2, sy2, v2.z, tu2, tv2);
+        TexturedLambertTri_(obj->model->tex, color, obj->id, sx0, sy0, v0.z,
+                tu0, tv0, sx1, sy1, v1.z, tu1, tv1, sx2, sy2, v2.z, tu2, tv2);
     }
 }
 
-static inline void TexturedLambertTri_(Texture* t, Vec3 color,
+static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2){
     /* 1. Bounding‑box, clamped to framebuffer */
@@ -405,6 +405,7 @@ static inline void TexturedLambertTri_(Texture* t, Vec3 color,
             unsigned char fB = (unsigned char)((tB * color.z) * 255);
 
             PutPixel(x, y, RGBA_INT(fR, fG, fB, 255));
+            UpdatePickbuf(x, y, id);
         }
     }
 }

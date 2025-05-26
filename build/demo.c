@@ -6,14 +6,17 @@
 #include "texture.h"
 #include "model.h"
 #include "camera.h"
+#include "mouse.h"
+#include "obj3d.h"
 
-static Mat4 modelMatrix;
 static Model model;
+static Obj3D carp;
 static Camera cam;
 static Light light[8];
 
 void Init(){
     InitTimer(1024);
+    InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
 
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
@@ -34,28 +37,30 @@ void Init(){
     cam.inverseDir = Vec3Norm(Vec3Make(0, 0, 1));
     light[0] = MakeDirectional(192, 192, 192, Vec3Norm(Vec3Make(1, -.5f, -1)));
     light[1] = MakeAmbient(64, 64, 64);
-    model.scale = Vec3Make(15.f, 15.f, 15.f);
-    model.rot = Vec3Make(0.f, 0.f, 0.f);
-    model.pos = Vec3Make(0.f, 0.f, -5.f);
     model.mesh = loadOBJ("models/carp.obj");
     model.tex = LoadBimg("textures/carp.bimg");
+    carp.model = &model;
+    carp.scale = Vec3Make(15.f, 15.f, 15.f);
+    carp.rot = Vec3Make(0.f, 0.f, 0.f);
+    carp.pos = Vec3Make(0.f, 0.f, -5.f);
+    carp.id = 12;
 }
 
 void Render(){
     /* clear to grey */
     ClearScreen(22);
     ClearDepthBuffer();
+    ClearPickbuf();
 
     /* some spinning */
-    model.rot.x += 0.5f * timer.dt;
-    model.rot.y += -0.3f * timer.dt;
-    model.rot.z += 0.1f * timer.dt;
+    carp.rot.x += 0.5f * timer.dt;
+    carp.rot.y += -0.3f * timer.dt;
+    carp.rot.z += 0.1f * timer.dt;
 
-    modelMatrix = ModelMatrix(&model);
-    DrawModelLambert(&cam, &model, &renderer.framebuffer, &light[0], 2,
-                modelMatrix);
+    DrawModelLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2);
 }
 
 void Update(){
     UpdateTimer();
+    UpdateObj3DModelMatrix(&carp);
 }
