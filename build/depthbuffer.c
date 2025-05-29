@@ -3,6 +3,11 @@
 #include "depthbuffer.h"
 
 int DepthbufferInit(Depthbuffer* db, int w, int h){
+    if (!db){
+        /* TODO */
+        printf("can't pass null to DepthbufferInit\n");
+        return 1;
+    }
     if (db->init){
         /* TODO: some sort of warning or something, print statement is temp */
         printf("What a buffoon! Init things once, not twice. \n");
@@ -25,6 +30,11 @@ int DepthbufferInit(Depthbuffer* db, int w, int h){
 }
 
 int DepthbufferFree(Depthbuffer* db){
+    if (!db){
+        /* TODO */
+        printf("can't pass null to DepthbufferFree\n");
+        return 1;
+    }
     if (!db->buf){
         /* TODO: A warning or exit or something */
         printf("Tried to free depthbuffer, but it was already null.\n");
@@ -47,6 +57,11 @@ int DepthbufferFree(Depthbuffer* db){
 }
 
 void DepthbufferClear(Depthbuffer* db, float val){
+    if (!db || !db->init || !db->buf){
+        /*TODO: error handling or something */
+        printf("Depthbuffer not ready to use\n");
+        return;
+    }
     for (int i = 0; i < db->sampleCount; i++){
         db->buf[i] = val;
     }
