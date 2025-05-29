@@ -7,6 +7,7 @@
 #include "model.h"
 #include "light.h"
 #include "obj3d.h"
+#include "depthbuffer.h"
 
 typedef struct {
     int w, h;
@@ -23,7 +24,6 @@ typedef struct {
 } Point2D;
 
 extern Renderer renderer;
-extern float* depthbuffer;
 
 extern void PutPixel_ASM(int x, int y);
 static inline void PutPixel_(int x, int y, int c);
@@ -42,16 +42,14 @@ void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
-               int x2, int y2, float z2, float u2, float v2);
+               int x2, int y2, float z2, float u2, float v2, Depthbuffer* db);
 static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
+        Depthbuffer* db,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2);
 
-void DrawModelLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
-        int nLights);
-int UpdateDepthBuffer(int screenX, int screenY, float depth);
-void ClearDepthBuffer();
-int InitDepthBuffer();
+void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
+        int nLights, Depthbuffer* db);
 
 void ClearScreen_(unsigned char grey);
 

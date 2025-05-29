@@ -8,21 +8,6 @@ Framebuffer framebuffer = {0};
 Renderer renderer = {0};
 float* depthbuffer = 0;
 
-int InitDepthBuffer(){
-    depthbuffer = (float*)malloc(sizeof(float) * renderer.framebuffer.w *
-                                                 renderer.framebuffer.h);
-    if (depthbuffer) return 1;
-    return 0;
-}
-
-int UpdateDepthBuffer(int screenX, int screenY, float depth){
-    float* address = depthbuffer + screenY * renderer.framebuffer.w + screenX;
-    if (depth < *address){
-        *address = depth;
-        return 1;
-    } else return 0;
-}
-
 static inline void PutPixel_(int x, int y, int c){
     int* pixel = (int*)renderer.framebuffer.buf +
         (y * renderer.framebuffer.w + x);
@@ -192,17 +177,9 @@ void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color) {
     }
 }
 
-void ClearDepthBuffer(){
-    int numPixels = renderer.framebuffer.w * renderer.framebuffer.h;
-    int i;
-    for (i = 0; i < numPixels; i++){
-        depthbuffer[i] = 1.f;
-    }
-}
-
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
-               int x2, int y2, float z2, float u2, float v2)
+               int x2, int y2, float z2, float u2, float v2, Depthbuffer* db)
 {
     /* 1. Bounding‑box, clamped to framebuffer */
     int minX = (x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2));
@@ -235,7 +212,7 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            if (!UpdateDepthBuffer(x, y, depth)) continue;
+            if (!DepthbufferTestWrite(db, x, y, depth)) continue;
             
 
             /* 4. Interpolate UV */
@@ -249,8 +226,8 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
     }
 }
 
-void DrawModelLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
-        int nLights){
+void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
+        int nLights, Depthbuffer* db){
     int numTris = obj->model->mesh->indexCount / 9;
 
     int i;
@@ -347,12 +324,13 @@ void DrawModelLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
         sy2 = (int)((0.5f - v2.y * 0.5f) * fb->h);
 
-        TexturedLambertTri_(obj->model->tex, color, obj->id, sx0, sy0, v0.z,
+        TexturedLambertTri_(obj->model->tex, color, obj->id, db, sx0, sy0, v0.z,
                 tu0, tv0, sx1, sy1, v1.z, tu1, tv1, sx2, sy2, v2.z, tu2, tv2);
     }
 }
 
-static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
+static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id, 
+        Depthbuffer* db,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2){
     /* 1. Bounding‑box, clamped to framebuffer */
@@ -387,7 +365,7 @@ static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            if (!UpdateDepthBuffer(x, y, depth)) continue;
+            if (!DepthbufferTestWrite(db, x, y, depth)) continue;
             
 
             /* 4. Interpolate UV */

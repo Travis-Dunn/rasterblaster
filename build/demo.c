@@ -13,16 +13,16 @@ static Model model;
 static Obj3D carp;
 static Camera cam;
 static Light light[8];
+static Depthbuffer depthbuf;
 
 void Init(){
     InitTimer(1024);
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
+    (void)DepthbufferInit(&depthbuf, renderer.framebuffer.w,
+            renderer.framebuffer.h);
 
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
-    if (!InitDepthBuffer()){
-        printf("couldn't allocate for depth buffer\n");
-    }
 
     cam.fovRads = 0.96f;
     cam.nearClip = .1f;
@@ -49,7 +49,7 @@ void Init(){
 void Render(){
     /* clear to grey */
     ClearScreen(22);
-    ClearDepthBuffer();
+    DepthbufferClear(&depthbuf, 1.f);
     ClearPickbuf();
 
     /* some spinning */
@@ -57,7 +57,8 @@ void Render(){
     carp.rot.y += -0.3f * timer.dt;
     carp.rot.z += 0.1f * timer.dt;
 
-    DrawModelLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2);
+    DrawObj3DLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2, 
+            &depthbuf);
 }
 
 void Update(){
