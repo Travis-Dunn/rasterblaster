@@ -1,0 +1,6 @@
+#ifndef SHADOWMAPPING_H
+#define SHADOWMAPPING_H
+
+
+
+#endif /* SHADOWMAPPING_H */

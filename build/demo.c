@@ -25,11 +25,16 @@ void Init(){
     printf("height: %d\n", renderer.framebuffer.h);
 
     cam.fovRads = 0.96f;
+    cam.ar = (float)renderer.framebuffer.w / renderer.framebuffer.h;
     cam.nearClip = .1f;
     cam.farClip = 100.f;
     Vec3 eye = Vec3Make(0, 0, 0);
     Vec3 tgt = Vec3Make(0, 0, -1);
     Vec3 up = Vec3Make(0, 1, 0);
+    cam.up = up;
+    cam.right = Vec3Make(1, 0, 0);
+    cam.forward = tgt;
+    cam.pos = eye;
     cam.view = Mat4LookAt(eye, tgt, up);
     cam.proj = MatPerspective(cam.fovRads,
             (float)renderer.framebuffer.w / renderer.framebuffer.h
@@ -61,7 +66,24 @@ void Render(){
             &depthbuf);
 }
 
+void debugCorner(char* str, Vec3 v){
+    printf("%s {%.3f, %.3f, %.3f}\n", str, v.x, v.y, v.z);
+}
+
 void Update(){
     UpdateTimer();
+    UpdateFrustum(&cam);
+    static int once = 0;
+    if (!once){
+        debugCorner("near top left", cam.frustum[0]);
+        debugCorner("near top right", cam.frustum[1]);
+        debugCorner("near bottom left", cam.frustum[2]);
+        debugCorner("near bottom right", cam.frustum[3]);
+        debugCorner("far top left", cam.frustum[4]);
+        debugCorner("far top right", cam.frustum[5]);
+        debugCorner("far bottom left", cam.frustum[6]);
+        debugCorner("far bottom right", cam.frustum[7]);
+        once = 1;
+    }
     UpdateObj3DModelMatrix(&carp);
 }

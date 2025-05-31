@@ -125,6 +125,10 @@ static inline Vec3 Vec3Add_(Vec3 a, Vec3 b){
     return Vec3Make_(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
+Vec3 Vec3Add(Vec3 a, Vec3 b){
+    return Vec3Add_(a, b);
+}
+
 static inline Vec3 Vec3Sub_(Vec3 a, Vec3 b){
     return Vec3Make_(a.x - b.x, a.y - b.y, a.z - b.z);
 }
@@ -135,6 +139,10 @@ Vec3 Vec3Sub(Vec3 a, Vec3 b){
 
 static inline Vec3 Vec3Scale_(Vec3 v, float s){
     return Vec3Make_(v.x * s, v.y * s, v.z * s);
+}
+
+Vec3 Vec3Scale(Vec3 v, float s){
+    return Vec3Scale_(v, s);
 }
 
 static inline float Vec3Dot_(Vec3 a, Vec3 b){
