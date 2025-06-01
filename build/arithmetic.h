@@ -21,7 +21,12 @@ static inline float Vec3Len_    (Vec3 v);
 static inline Vec3 Vec3Norm_    (Vec3 v);
 Vec3 Vec3Norm                   (Vec3 v);
 
+
+/*********************************    Vec4    *********************************/
+
 typedef struct { float x, y, z, w;  } Vec4;
+Vec4 Vec4Make                   (float x, float y, float z, float w);
+static inline Vec4 Vec4Make_    (float x, float y, float z, float w);
 
 /* Column major */
 typedef struct { float m[3][3]; } Mat3;

@@ -179,6 +179,15 @@ Vec3 Vec3Norm(Vec3 v){
     return Vec3Norm_(v);
 }
 
+
+static inline Vec4 Vec4Make_(float x, float y, float z, float w){
+    Vec4 v; v.x = x; v.y = y; v.z = z; v.w = w; return v;
+}
+
+Vec4 Vec4Make(float x, float y, float z, float w){
+    return Vec4Make_(x, y, z, w);
+}
+
 static inline Quat QuatMake_(float w, float x, float y, float z){
     Quat q; q.w = 1.f; q.x = 0.f; q.y = 0.f; q.z = 0.f; return q;
 }
