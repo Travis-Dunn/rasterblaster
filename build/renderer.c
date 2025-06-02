@@ -179,7 +179,7 @@ void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color) {
 
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
-               int x2, int y2, float z2, float u2, float v2, Depthbuffer* db)
+               int x2, int y2, float z2, float u2, float v2, DepthBuffer* db)
 {
     /* 1. Bounding‑box, clamped to framebuffer */
     int minX = (x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2));
@@ -212,7 +212,7 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            if (!DepthbufferTestWrite(db, x, y, depth)) continue;
+            if (!DepthBufferTestWrite(db, x, y, depth)) continue;
             
 
             /* 4. Interpolate UV */
@@ -227,7 +227,7 @@ void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
 }
 
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
-        int nLights, Depthbuffer* db){
+        int nLights, DepthBuffer* db){
     int numTris = obj->model->mesh->indexCount / 9;
 
     int i;
@@ -330,7 +330,7 @@ void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
 }
 
 static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id, 
-        Depthbuffer* db,
+        DepthBuffer* db,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2){
     /* 1. Bounding‑box, clamped to framebuffer */
@@ -365,7 +365,7 @@ static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            if (!DepthbufferTestWrite(db, x, y, depth)) continue;
+            if (!DepthBufferTestWrite(db, x, y, depth)) continue;
             
 
             /* 4. Interpolate UV */
@@ -388,4 +388,17 @@ static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
     }
 }
 
-
+void VisualizeBuffer(void* buf, int w, int h, char* type){
+    if (!strcmp(type, "float")){
+        float* fbuf = (float*)buf;
+        int val;
+        for (int y = 0; y < h; y++){
+            for (int x = 0; x < w; x++){
+                val = (int)(fbuf[y * w + x] * 255 + 0.5f);
+                val = val > 255 ? 255 : val;
+                val = val < 0 ? 0 : val;
+                PutPixel(x, y, RGBA_INT(val, val, val, 255));
+            }
+        }
+    }
+}

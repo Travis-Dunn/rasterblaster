@@ -6,9 +6,9 @@
 #include <math.h>
 #include <windows.h>
 
-#define INTERNAL_WIDTH 320
-#define INTERNAL_HEIGHT 240
-#define PIXEL_SCALE 4
+#define INTERNAL_WIDTH 1400
+#define INTERNAL_HEIGHT 900
+#define PIXEL_SCALE 1
 
 #define WINDOW_WIDTH (PIXEL_SCALE * INTERNAL_WIDTH)
 #define WINDOW_HEIGHT (PIXEL_SCALE * INTERNAL_HEIGHT)

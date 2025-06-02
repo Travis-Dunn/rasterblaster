@@ -2,10 +2,10 @@
 #include "stdio.h"
 #include "depthbuffer.h"
 
-int DepthbufferInit(Depthbuffer* db, int w, int h){
+int DepthBufferInit(DepthBuffer* db, int w, int h){
     if (!db){
         /* TODO */
-        printf("can't pass null to DepthbufferInit\n");
+        printf("can't pass null to DepthBufferInit\n");
         return 1;
     }
     if (db->init){
@@ -15,7 +15,7 @@ int DepthbufferInit(Depthbuffer* db, int w, int h){
     }
     if (!(w > 0 && w < MAX_W && h > 0 && h < MAX_H)){
         /* TODO: probably just exit with error */
-        printf("Depthbuffer size invalid. W: %d, H: %d\n", db->w, db->h);
+        printf("DepthBuffer size invalid. W: %d, H: %d\n", db->w, db->h);
         return 1;
     }
     db->w = w; db->h = h; db->sampleCount = h * w;
@@ -29,24 +29,24 @@ int DepthbufferInit(Depthbuffer* db, int w, int h){
     return 0;
 }
 
-int DepthbufferFree(Depthbuffer* db){
+int DepthBufferFree(DepthBuffer* db){
     if (!db){
         /* TODO */
-        printf("can't pass null to DepthbufferFree\n");
+        printf("can't pass null to DepthBufferFree\n");
         return 1;
     }
     if (!db->buf){
         /* TODO: A warning or exit or something */
-        printf("Tried to free depthbuffer, but it was already null.\n");
+        printf("Tried to free depthbuffer.buf, but it was already null.\n");
         printf("You probably freed it manually and then called \
-                DepthbufferFree().\n");
+                DepthBufferFree().\n");
         return 1;
     }
     if (!db->init){
         /* A warning or exit or seomthing */
         printf("Tried to free depthbuffer, but it was never properly \
                 initialized.\n");
-        printf("You need to initialize it with DepthbufferInit().\n");
+        printf("You need to initialize it with DepthBufferInit().\n");
         return 1;
     }
     free(db->buf);
@@ -56,10 +56,10 @@ int DepthbufferFree(Depthbuffer* db){
     return 0;
 }
 
-void DepthbufferClear(Depthbuffer* db, float val){
+void DepthBufferClear(DepthBuffer* db, float val){
     if (!db || !db->init || !db->buf){
         /*TODO: error handling or something */
-        printf("Depthbuffer not ready to use\n");
+        printf("DepthBuffer not ready to use\n");
         return;
     }
     for (int i = 0; i < db->sampleCount; i++){
@@ -67,7 +67,7 @@ void DepthbufferClear(Depthbuffer* db, float val){
     }
 }
 
-int DepthbufferTestWrite(Depthbuffer* db, int x, int y, float z){
+int DepthBufferTestWrite(DepthBuffer* db, int x, int y, float z){
     float* address = db->buf + y * db->w + x;
     if (z < *address){
         *address = z;

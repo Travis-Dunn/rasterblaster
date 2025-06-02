@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include "math.h" /* sinf, cosf, tanf, sqrtf */
 #include "arithmetic.h"
 
@@ -262,4 +263,13 @@ static inline Mat4 Mat4LookAt_(Vec3 eye, Vec3 centre, Vec3 up){
 
 Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up){
     return Mat4LookAt_(eye, centre, up);
+}
+
+
+void Mat4Printf(Mat4* m, char* label){
+    if (label) printf("%s\n", label);
+    for (int r = 0; r < 4; r++)
+        printf("| %8.5f %8.5f %8.5f %8.5f |\n",
+                m->m[r][0], m->m[r][1], m->m[r][2], m->m[r][3]);
+    printf("\n");
 }

@@ -8,18 +8,22 @@
 #include "camera.h"
 #include "mouse.h"
 #include "obj3d.h"
+#include "shadowmapper.h"
 
 static Model model;
 static Obj3D carp;
 static Camera cam;
 static Light light[8];
-static Depthbuffer depthbuf;
+static DepthBuffer depthbuf;
+static ShadowMapper shadowMapper;
 
 void Init(){
     InitTimer(1024);
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
-    (void)DepthbufferInit(&depthbuf, renderer.framebuffer.w,
+    (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
             renderer.framebuffer.h);
+    (void)ShadowMapperInit(&shadowMapper, renderer.framebuffer.w,
+            renderer.framebuffer.h, 0.f, &cam, Vec3Make(1, -.5f, -1));
 
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
@@ -27,10 +31,11 @@ void Init(){
     cam.fovRads = 0.96f;
     cam.ar = (float)renderer.framebuffer.w / renderer.framebuffer.h;
     cam.nearClip = .1f;
-    cam.farClip = 100.f;
+    cam.farClip = 10.f;
     Vec3 eye = Vec3Make(0, 0, 0);
     Vec3 tgt = Vec3Make(0, 0, -1);
     Vec3 up = Vec3Make(0, 1, 0);
+    cam.gUp = up;
     cam.up = up;
     cam.right = Vec3Make(1, 0, 0);
     cam.forward = tgt;
@@ -40,6 +45,8 @@ void Init(){
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
     cam.inverseDir = Vec3Norm(Vec3Make(0, 0, 1));
+
+    UpdateFrustum(&cam);
     light[0] = MakeDirectional(192, 192, 192, Vec3Norm(Vec3Make(1, -.5f, -1)));
     light[1] = MakeAmbient(64, 64, 64);
     model.mesh = loadOBJ("models/carp.obj");
@@ -49,21 +56,33 @@ void Init(){
     carp.rot = Vec3Make(0.f, 0.f, 0.f);
     carp.pos = Vec3Make(0.f, 0.f, -5.f);
     carp.id = 12;
+    ShadowMapperUpdate(&shadowMapper);
+    Mat4Printf(&shadowMapper.matTransform, "shadowMapper.matTransform");
+    /*
+    puts("Paused - press any key to continue");
+    getchar();
+    */
 }
 
 void Render(){
     /* clear to grey */
     ClearScreen(22);
-    DepthbufferClear(&depthbuf, 1.f);
+    DepthBufferClear(&depthbuf, 1.f);
     ClearPickbuf();
+    ShadowMapperClear(&shadowMapper, 1.f);
 
     /* some spinning */
     carp.rot.x += 0.5f * timer.dt;
     carp.rot.y += -0.3f * timer.dt;
     carp.rot.z += 0.1f * timer.dt;
 
+    ShadowMapperRender(&shadowMapper, &carp);
+    /*
     DrawObj3DLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2, 
             &depthbuf);
+            */
+    VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
+            "float");
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -85,5 +104,6 @@ void Update(){
         debugCorner("far bottom right", cam.frustum[7]);
         once = 1;
     }
+    ShadowMapperUpdate(&shadowMapper);
     UpdateObj3DModelMatrix(&carp);
 }

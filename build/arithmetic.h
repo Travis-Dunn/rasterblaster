@@ -44,6 +44,7 @@ Mat4 MatRoll(float roll);
 Mat4 MatView(float pitch, float yaw, float roll, float xPos, float yPos,
         float zPos);
 Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar);
+void Mat4Printf(Mat4* m, char* label);
 
 /*********************************    Quat    *********************************/
 typedef struct { float w, x, y, z; } Quat;

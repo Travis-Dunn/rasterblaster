@@ -6,12 +6,12 @@ typedef struct {
     int w, h;
     int sampleCount;
     float* buf;
-} Depthbuffer;
+} DepthBuffer;
 
-int               DepthbufferInit     (Depthbuffer* db, int w, int h);
-int               DepthbufferFree     (Depthbuffer* db);
-void              DepthbufferClear    (Depthbuffer* db, float val);
-int               DepthbufferTestWrite(Depthbuffer* db, int x, int y, float z);
+int               DepthBufferInit     (DepthBuffer* db, int w, int h);
+int               DepthBufferFree     (DepthBuffer* db);
+void              DepthBufferClear    (DepthBuffer* db, float val);
+int               DepthBufferTestWrite(DepthBuffer* db, int x, int y, float z);
 
 #define MAX_W 3840
 #define MAX_H 2160

@@ -42,15 +42,16 @@ void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
 void TexturedTri(Texture* t, int x0, int y0, float z0, float u0, float v0,
                int x1, int y1, float z1, float u1, float v1,
-               int x2, int y2, float z2, float u2, float v2, Depthbuffer* db);
+               int x2, int y2, float z2, float u2, float v2, DepthBuffer* db);
 static inline void TexturedLambertTri_(Texture* t, Vec3 color, int id,
-        Depthbuffer* db,
+        DepthBuffer* db,
         int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
         float u1, float v1, int x2, int y2, float z2, float u2, float v2);
 
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
-        int nLights, Depthbuffer* db);
+        int nLights, DepthBuffer* db);
 
+void VisualizeBuffer(void* buf, int w, int h, char* type);
 void ClearScreen_(unsigned char grey);
 
 #ifdef USE_SAFE_PIXEL_FUNCTIONS
