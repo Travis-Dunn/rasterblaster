@@ -267,9 +267,9 @@ void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         Vec3 normal = Vec3Cross(side0, side1);
         
         /* reject tris facing away from camera */
-
         if (!(normal.z > 0.f)) continue;
-        float similarity = Vec3Dot(Vec3Norm(normal), cam->inverseDir);
+
+        /* accumulate light */
         int i;
         int rAcc = 0;
         int gAcc = 0;
@@ -297,9 +297,6 @@ void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         float lB = bAcc / 255.f;
         Vec3 color = Vec3Make(lR, lG, lB); 
  
-        /* use normal for calculating net lighting (lambert) */
-        /* to be implemented... */
-
         /* view -> clip */
         v0 = MatVertMul(&cam->proj, v0);
         v1 = MatVertMul(&cam->proj, v1);
@@ -402,3 +399,225 @@ void VisualizeBuffer(void* buf, int w, int h, char* type){
         }
     }
 }
+
+void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
+        int nLights, DepthBuffer* db, ShadowMapper* sm){
+    int numTris = obj->model->mesh->indexCount / 9;
+    Mat4 matShadow = MatMatMul(&sm->matTransform, &obj->matModel);
+
+    int i;
+    for (i = 0; i < numTris; i++) {
+        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
+        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
+        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
+                &i8);
+
+        /* use indices to get data */ 
+        Vec4 v0, v1, v2, n0, n1, n2;
+        float tu0, tv0, tu1, tv1, tu2, tv2;
+
+        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        
+        /* set up ints for the screen space triangle coordinates */
+        int sx0, sy0, sx1, sy1, sx2, sy2;
+
+        /* model -> shadow clip */
+        Vec4 vs0 = MatVertMul(&matShadow, v0);
+        Vec4 vs1 = MatVertMul(&matShadow, v1);
+        Vec4 vs2 = MatVertMul(&matShadow, v2);
+
+        /* model -> world */
+        v0 = MatVertMul(&obj->matModel, v0);
+        v1 = MatVertMul(&obj->matModel, v1);
+        v2 = MatVertMul(&obj->matModel, v2);
+
+        /* world -> view */
+        v0 = MatVertMul(&cam->view, v0);
+        v1 = MatVertMul(&cam->view, v1);
+        v2 = MatVertMul(&cam->view, v2);
+
+        /* calculate tri normal */
+        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
+        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
+        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
+        Vec3 side0 = Vec3Sub(v1_, v0_);
+        Vec3 side1 = Vec3Sub(v2_, v0_);
+        Vec3 normal = Vec3Cross(side0, side1);
+        
+        /* reject tris facing away from camera */
+        if (!(normal.z > 0.f)) continue;
+
+        /* accumulate light */
+        int i;
+        int rAcc = 0;
+        int gAcc = 0;
+        int bAcc = 0;
+        int ldra = 0;
+        int ldga = 0;
+        int ldba = 0;
+        for (i = 0; i < nLights; i++){
+            if (l[i].type == LIGHT_AMBIENT){
+                rAcc += GETR(l[i].rgb);
+                gAcc += GETG(l[i].rgb);
+                bAcc += GETB(l[i].rgb);
+            }
+            if (l[i].type == LIGHT_DIRECTIONAL){
+                float s = Vec3Dot(Vec3Norm(normal), Vec3Norm(l[i].inverseDir));
+                s = s > 0.f ? s : 0.f;
+                s = s <= 1.f ? s : 1.f;
+                ldra += (int)(GETR(l[i].rgb) * s);
+                ldga += (int)(GETG(l[i].rgb) * s);
+                ldba += (int)(GETB(l[i].rgb) * s);
+            }
+        }
+        rAcc = rAcc > 255 ? 255 : rAcc;
+        gAcc = gAcc > 255 ? 255 : gAcc;
+        bAcc = bAcc > 255 ? 255 : bAcc;
+        ldra = ldra > 255 ? 255 : ldra;
+        ldga = ldga > 255 ? 255 : ldga;
+        ldba = ldba > 255 ? 255 : ldba;
+        float lR = rAcc / 255.f;
+        float lG = gAcc / 255.f;
+        float lB = bAcc / 255.f;
+        float ldraf = ldra / 255.f;
+        float ldgaf = ldga / 255.f;
+        float ldbaf = ldba / 255.f;
+        Vec3 la = Vec3Make(lR, lG, lB); 
+        Vec3 ld = Vec3Make(ldraf, ldgaf, ldbaf);
+ 
+        /* view -> clip */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+
+        /* clip -> NDC (clipping not yet implemented) */
+        v0.x /= v0.w;
+        v0.y /= v0.w;
+        v0.z /= v0.w;
+        v1.x /= v1.w;
+        v1.y /= v1.w;
+        v1.z /= v1.w;
+        v2.x /= v2.w;
+        v2.y /= v2.w;
+        v2.z /= v2.w;
+
+        /* also do this for shadow verts */
+        vs0.x /= vs0.w;
+        vs0.y /= vs0.w;
+        vs0.z /= vs0.w;
+        vs1.x /= vs1.w;
+        vs1.y /= vs1.w;
+        vs1.z /= vs1.w;
+        vs2.x /= vs2.w;
+        vs2.y /= vs2.w;
+        vs2.z /= vs2.w;
+
+        /* NDC -> screen */
+        sx0 = (int)((v0.x * 0.5f + 0.5f) * fb->w);
+        sy0 = (int)((0.5f - v0.y * 0.5f) * fb->h);
+        sx1 = (int)((v1.x * 0.5f + 0.5f) * fb->w);
+        sy1 = (int)((0.5f - v1.y * 0.5f) * fb->h);
+        sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
+        sy2 = (int)((0.5f - v2.y * 0.5f) * fb->h);
+
+        /* also to this for the shadow verts */
+        vs0.x = (vs0.x * 0.5f + 0.5f);
+        vs0.y = (0.5f - vs0.y * 0.5f);
+        vs1.x = (vs1.x * 0.5f + 0.5f);
+        vs1.y = (0.5f - vs1.y * 0.5f);
+        vs2.x = (vs2.x * 0.5f + 0.5f);
+        vs2.y = (0.5f - vs2.y * 0.5f);
+        vs0.z = vs0.z * 0.5f + 0.5f;
+        vs1.z = vs1.z * 0.5f + 0.5f;
+        vs2.z = vs2.z * 0.5f + 0.5f;
+
+        TexturedLambertShadowTri_(obj->model->tex, la, obj->id, db, ld, sx0, sy0, v0.z,
+                tu0, tv0, sx1, sy1, v1.z, tu1, tv1, sx2, sy2, v2.z, tu2, tv2
+                , sm, vs0, vs1, vs2);
+    }
+}
+
+static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
+        DepthBuffer* db, Vec3 ld,
+        int x0, int y0, float z0, float u0, float v0, int x1, int y1, float z1,
+        float u1, float v1, int x2, int y2, float z2, float u2, float v2
+        , ShadowMapper* sm, Vec4 sh0, Vec4 sh1, Vec4 sh2){
+    /* 1. Bounding‑box, clamped to framebuffer */
+    int minX = (x0 < x1 ? (x0 < x2 ? x0 : x2) : (x1 < x2 ? x1 : x2));
+    int minY = (y0 < y1 ? (y0 < y2 ? y0 : y2) : (y1 < y2 ? y1 : y2));
+    int maxX = (x0 > x1 ? (x0 > x2 ? x0 : x2) : (x1 > x2 ? x1 : x2));
+    int maxY = (y0 > y1 ? (y0 > y2 ? y0 : y2) : (y1 > y2 ? y1 : y2));
+
+    if (minX < 0) minX = 0;
+    if (minY < 0) minY = 0;
+    if (maxX >= renderer.framebuffer.w) maxX = renderer.framebuffer.w - 1;
+    if (maxY >= renderer.framebuffer.h) maxY = renderer.framebuffer.h - 1;
+
+    /* 2. Pre‑compute denominator and edge deltas */
+    float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+    if (denom == 0.0f) return;          /* Degenerate triangle */
+
+    /* accumulate contribution from ambient lights */
+   float invDen = 1.0f / denom;
+
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            /* 3. Barycentric weights (affine) */
+            float l0 = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) * invDen;
+            float l1 = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) * invDen;
+            float l2 = 1.0f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < 0.0f || l1 < 0.0f || l2 < 0.0f) continue;
+
+            float depth = l0 * z0 + l1 * z1 + l2 * z2;
+            
+            if (!DepthBufferTestWrite(db, x, y, depth)) continue;
+            
+
+            /* 4. Interpolate UV */
+            float u = l0 * u0 + l1 * u1 + l2 * u2;
+            float v = l0 * v0 + l1 * v1 + l2 * v2;
+            float sx = l0 * sh0.x + l1 * sh1.x + l2 * sh2.x;
+            float sy = l0 * sh0.y + l1 * sh1.y + l2 * sh2.y;
+            float sz = l0 * sh0.z + l1 * sh1.z + l2 * sh2.z;
+
+            int tx = (int)(sx * (sm->w - 1) + 0.5f);
+            int ty = (int)(sy * (sm->h - 1) + 0.5f);
+            
+            int lit = 0;
+            if (tx < 0 || ty < 0 || tx >= sm->w || ty >= sm->h){
+                printf("Tried to sample outside of shadow map bounds\n");
+            }
+            float sample = sm->buf[ty * sm->w + tx];
+            lit = sz - 0.003f <= sample;
+
+            /* 5. Sample & draw */
+            int texel = SampleTex(t, u, v);
+
+            float tR = GETR(texel) / 255.f;
+            float tG = GETG(texel) / 255.f;
+            float tB = GETB(texel) / 255.f;
+            float lR = la.x;
+            float lG = la.y;
+            float lB = la.z;
+            if (lit){
+                lR += ld.x;
+                lG += ld.y;
+                lB += ld.z;
+            }
+            unsigned char iR = (unsigned char)(tR * lR * 255.f);
+            unsigned char iG = (unsigned char)(tG * lG * 255.f);
+            unsigned char iB = (unsigned char)(tB * lB * 255.f);
+
+            PutPixel(x, y, RGBA_INT(iR, iG, iB, 255));
+            UpdatePickbuf(x, y, id);
+        }
+    }
+}
+
+

@@ -23,7 +23,7 @@ void Init(){
     (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
             renderer.framebuffer.h);
     (void)ShadowMapperInit(&shadowMapper, renderer.framebuffer.w,
-            renderer.framebuffer.h, 0.f, &cam, Vec3Make(1, -.5f, -1));
+            renderer.framebuffer.h, 0.003f, &cam, Vec3Make(1, -.5f, -1));
 
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
@@ -81,8 +81,12 @@ void Render(){
     DrawObj3DLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2, 
             &depthbuf);
             */
+    DrawObj3DLambertShadow(&cam, &carp, &renderer.framebuffer, &light[0], 2,
+            &depthbuf, &shadowMapper);
+    /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
             "float");
+    */
 }
 
 void debugCorner(char* str, Vec3 v){
