@@ -594,7 +594,7 @@ static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
                 printf("Tried to sample outside of shadow map bounds\n");
             }
             float sample = sm->buf[ty * sm->w + tx];
-            lit = sz - 0.003f <= sample;
+            lit = sz - 0.004f <= sample;
 
             /* 5. Sample & draw */
             int texel = SampleTex(t, u, v);

@@ -9,15 +9,22 @@
 #include "mouse.h"
 #include "obj3d.h"
 #include "shadowmapper.h"
+#include "event.h"
 
 static Model model;
+static Model groundModel;
 static Obj3D carp;
+static Obj3D ground;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
 static ShadowMapper shadowMapper;
+static EventQueue* eventQueue;
 
 void Init(){
+    if (EventQueueInit(&eventQueue, 256)){
+        printf("problem setting up event queue\n");
+    }
     InitTimer(1024);
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
     (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
@@ -32,7 +39,7 @@ void Init(){
     cam.ar = (float)renderer.framebuffer.w / renderer.framebuffer.h;
     cam.nearClip = .1f;
     cam.farClip = 10.f;
-    Vec3 eye = Vec3Make(0, 0, 0);
+    Vec3 eye = Vec3Make(0, 0.f, 0);
     Vec3 tgt = Vec3Make(0, 0, -1);
     Vec3 up = Vec3Make(0, 1, 0);
     cam.gUp = up;
@@ -51,11 +58,18 @@ void Init(){
     light[1] = MakeAmbient(64, 64, 64);
     model.mesh = loadOBJ("models/carp.obj");
     model.tex = LoadBimg("textures/carp.bimg");
+    groundModel.mesh = loadOBJ("models/ground.obj");
+    groundModel.tex = LoadBimg("textures/dirt.bimg");
     carp.model = &model;
     carp.scale = Vec3Make(15.f, 15.f, 15.f);
     carp.rot = Vec3Make(0.f, 0.f, 0.f);
     carp.pos = Vec3Make(0.f, 0.f, -5.f);
+    ground.model = &groundModel;
+    ground.scale = Vec3Make(1.f, 1.f, 1.f);
+    ground.rot = Vec3Make(0.f, 0.f, 0.f);
+    ground.pos = Vec3Make(0.f, 0.f, -5.f);
     carp.id = 12;
+    ground .id = 11;
     ShadowMapperUpdate(&shadowMapper);
     Mat4Printf(&shadowMapper.matTransform, "shadowMapper.matTransform");
     /*
@@ -82,6 +96,8 @@ void Render(){
             &depthbuf);
             */
     DrawObj3DLambertShadow(&cam, &carp, &renderer.framebuffer, &light[0], 2,
+            &depthbuf, &shadowMapper);
+    DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
     /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
@@ -110,4 +126,5 @@ void Update(){
     }
     ShadowMapperUpdate(&shadowMapper);
     UpdateObj3DModelMatrix(&carp);
+    UpdateObj3DModelMatrix(&ground);
 }
