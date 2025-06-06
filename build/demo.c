@@ -11,6 +11,7 @@
 #include "obj3d.h"
 #include "shadowmapper.h"
 #include "event.h"
+#include "input.h"
 
 static Model model;
 static Model groundModel;
@@ -21,12 +22,14 @@ static Light light[8];
 static DepthBuffer depthbuf;
 static ShadowMapper shadowMapper;
 static EventQueue* eventQueue;
+static InputSystem inputSystem;
 
 void Init(){
     if (EventQueueInit(&eventQueue, 256)){
         printf("problem setting up event queue\n");
     }
     SetPlatformEventQueue(eventQueue);
+    InputInit(&inputSystem);
     InitTimer(1024);
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
     (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
@@ -112,6 +115,7 @@ void debugCorner(char* str, Vec3 v){
 }
 
 void Update(){
+    InputUpdate(&inputSystem, timer.dt);
     UpdateTimer();
     UpdateFrustum(&cam);
     static int once = 0;
@@ -137,7 +141,13 @@ void Update(){
             case EVT_LBUTTONDOWN:{
                 printf("mouse event\n");
             } break;
+            case EVT_KEYDOWN: {
+                InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
+            } break;
             }
         }
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X)){
+        printf("camera translate x key pressed\n");
     }
 }

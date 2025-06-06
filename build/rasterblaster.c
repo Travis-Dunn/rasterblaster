@@ -65,6 +65,14 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
             printf("clicked elsewhere, more specifically: %d, %d\n", mouseX, mouseY);
         }
     } break;
+    case WM_KEYDOWN: {
+        if (g_EventQueue){
+            Event evt;
+            evt.type = EVT_KEYDOWN;
+            evt.buf[0] = (int)wParam;
+            EventEnqueue(g_EventQueue, &evt);
+        }
+    } break;
     default:{
     ret = DefWindowProc(hWnd, msg, wParam, lParam);
     } break;

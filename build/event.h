@@ -2,7 +2,8 @@
 #define EVENT_H
 
 typedef enum { /* just one for now, there will be more */
-    EVT_LBUTTONDOWN = 0 
+    EVT_LBUTTONDOWN = 0,
+    EVT_KEYDOWN
 } EventType;
 
 typedef struct {
