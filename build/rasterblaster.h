@@ -6,6 +6,10 @@
 #include <math.h>
 #include <windows.h>
 
+/* This is the only non-platform file we need. It contains the system that
+ * communicates between the platform layer and the application layer */
+#include "event.h"
+
 #define INTERNAL_WIDTH 1000
 #define INTERNAL_HEIGHT 1000
 #define PIXEL_SCALE 1
@@ -20,11 +24,13 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         LPSTR lpCmdLine, int nCmdShow);
 void ResizeDIBSection(int w, int h);
 void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h);
-void printOffsets();
+void printOffsets(); /* debug */
 
-int running = 0;
-BITMAPINFO bitmapInfo;
-void* bitmapMemory;
-int bitmapW;
-int bitmapH;
+void SetPlatformEventQueue(EventQueue* q);
+
+extern int running;
+extern BITMAPINFO bitmapInfo;
+extern void* bitmapMemory;
+extern int bitmapW;
+extern int bitmapH;
 #endif /* RASTERBLASTER_H */

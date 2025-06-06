@@ -12,9 +12,10 @@ typedef struct {
 
 typedef struct EventQueue EventQueue;
 
-int EventQueueInit  (EventQueue** qq, int cap);
-int EventQueueFree  (EventQueue** qq);
-int EventEnqueue    (EventQueue* q, Event* e);
-int EventDequeue    (EventQueue* q, Event* e);
+int EventQueueInit      (EventQueue** qq, int cap);
+int EventQueueFree      (EventQueue** qq);
+int EventEnqueue        (EventQueue* q, Event* e);
+int EventDequeue        (EventQueue* q, Event* e);
+int EventQueueNotEmpty  (EventQueue* q);
 
 #endif /* EVENT_H */

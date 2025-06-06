@@ -1,3 +1,4 @@
+#include "rasterblaster.h"
 #include "demo.h"
 #include "renderer.h"
 #include "arithmetic.h"
@@ -25,6 +26,7 @@ void Init(){
     if (EventQueueInit(&eventQueue, 256)){
         printf("problem setting up event queue\n");
     }
+    SetPlatformEventQueue(eventQueue);
     InitTimer(1024);
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
     (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
@@ -127,4 +129,15 @@ void Update(){
     ShadowMapperUpdate(&shadowMapper);
     UpdateObj3DModelMatrix(&carp);
     UpdateObj3DModelMatrix(&ground);
+
+    Event evt;
+    while (EventQueueNotEmpty(eventQueue)){
+        if (EventDequeue(eventQueue, &evt) == 0){
+            switch (evt.type){
+            case EVT_LBUTTONDOWN:{
+                printf("mouse event\n");
+            } break;
+            }
+        }
+    }
 }

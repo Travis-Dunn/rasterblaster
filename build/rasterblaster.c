@@ -3,6 +3,18 @@
 #include "demo.h"
 #include "mouse.h"
 
+int running = 0;
+BITMAPINFO bitmapInfo;
+void* bitmapMemory;
+int bitmapW;
+int bitmapH;
+
+static EventQueue* g_EventQueue = 0;
+
+void SetPlatformEventQueue(EventQueue* q){
+    g_EventQueue = q;
+}
+
 LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam, 
         LPARAM lParam){
     LRESULT ret = 0;
@@ -37,6 +49,13 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
     EndPaint(hWnd, &paint);
     } break;
     case WM_LBUTTONDOWN:{
+        if (g_EventQueue){
+            Event evt;
+            evt.type = EVT_LBUTTONDOWN;
+            evt.buf[0] = (int)LOWORD(lParam);
+            evt.buf[1] = (int)HIWORD(lParam);
+            EventEnqueue(g_EventQueue, &evt);
+        }
         int mouseX = (int)LOWORD(lParam);
         int mouseY = (int)HIWORD(lParam);
         int ret = GetClicked(mouseX, mouseY);

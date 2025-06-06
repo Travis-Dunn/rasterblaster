@@ -9,8 +9,7 @@ struct EventQueue {
 
 int EventQueueInit(EventQueue** qq, int cap){
     assert(cap > 0 && !(cap & (cap - 1)));
-    EventQueue* q = *qq;
-    q = calloc(1, sizeof(*q));
+    EventQueue* q = calloc(1, sizeof(EventQueue));
     if (!q){
         /* TODO: handle this - it is a fatal error */
         return 1;
@@ -57,4 +56,10 @@ int EventDequeue(EventQueue* q, Event* out){
     *out = q->buf[q->tail];
     q->tail = next(q->tail, q->cap);
     return 0;
+}
+
+
+int EventQueueNotEmpty(EventQueue* q){
+    assert(q);
+    return q->head != q->tail;
 }
