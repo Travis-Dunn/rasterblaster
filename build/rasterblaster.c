@@ -73,6 +73,14 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
             EventEnqueue(g_EventQueue, &evt);
         }
     } break;
+    case WM_KEYUP: {
+        if (g_EventQueue){
+            Event evt;
+            evt.type = EVT_KEYUP;
+            evt.buf[0] = (int)wParam;
+            EventEnqueue(g_EventQueue, &evt);
+        }
+    } break;
     default:{
     ret = DefWindowProc(hWnd, msg, wParam, lParam);
     } break;

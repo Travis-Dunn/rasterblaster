@@ -40,7 +40,8 @@ void Init(){
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
 
-    cam.fovRads = 0.96f;
+    /*
+    cam.fov = 0.96f;
     cam.ar = (float)renderer.framebuffer.w / renderer.framebuffer.h;
     cam.nearClip = .1f;
     cam.farClip = 10.f;
@@ -53,12 +54,17 @@ void Init(){
     cam.forward = tgt;
     cam.pos = eye;
     cam.view = Mat4LookAt(eye, tgt, up);
-    cam.proj = MatPerspective(cam.fovRads,
+    cam.proj = Mat4Perspective(cam.fov,
             (float)renderer.framebuffer.w / renderer.framebuffer.h
             , cam.nearClip, cam.farClip);
     cam.inverseDir = Vec3Norm(Vec3Make(0, 0, 1));
-
+    */
+    CameraMakePerspectiveRH(&cam, (float)renderer.framebuffer.w /
+            renderer.framebuffer.h, 55.f, &timer.dt);
+    cam.farClip = 10.f;
+    /*
     UpdateFrustum(&cam);
+    */
     light[0] = MakeDirectional(192, 192, 192, Vec3Norm(Vec3Make(1, -.5f, -1)));
     light[1] = MakeAmbient(64, 64, 64);
     model.mesh = loadOBJ("models/carp.obj");
@@ -76,7 +82,8 @@ void Init(){
     carp.id = 12;
     ground .id = 11;
     ShadowMapperUpdate(&shadowMapper);
-    Mat4Printf(&shadowMapper.matTransform, "shadowMapper.matTransform");
+    UpdateCamera(&cam);
+    Mat4Printf(&cam.view, "cam.view");
     /*
     puts("Paused - press any key to continue");
     getchar();
@@ -117,7 +124,10 @@ void debugCorner(char* str, Vec3 v){
 void Update(){
     InputUpdate(&inputSystem, timer.dt);
     UpdateTimer();
+    /*
     UpdateFrustum(&cam);
+    */
+    UpdateCamera(&cam);
     static int once = 0;
     if (!once){
         debugCorner("near top left", cam.frustum[0]);
@@ -144,10 +154,14 @@ void Update(){
             case EVT_KEYDOWN: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
             } break;
+            case EVT_KEYUP: {
+                InputHandleKeyEvent(&inputSystem, evt.buf[0], 0);
+            } break;
             }
         }
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X)){
         printf("camera translate x key pressed\n");
+        TranslateGlobalLeft(&cam);
     }
 }

@@ -101,7 +101,7 @@ Mat4 MatView(float pitch, float yaw, float roll, float xPos, float yPos,
     return view;
 }
 
-Mat4 MatPerspective(float fov, float aspectRatio, float zNear, float zFar){
+Mat4 Mat4Perspective(float fov, float aspectRatio, float zNear, float zFar){
     Mat4 mat = MatIdentity();
     float f = 1 / tanf(fov / 2);
     float temp = zNear - zFar;
@@ -190,17 +190,26 @@ Vec4 Vec4Make(float x, float y, float z, float w){
 }
 
 static inline Quat QuatMake_(float w, float x, float y, float z){
-    Quat q; q.w = 1.f; q.x = 0.f; q.y = 0.f; q.z = 0.f; return q;
+    Quat q; q.w = w; q.x = x; q.y = y; q.z = z; return q;
 }
 
 Quat QuatMake(float w, float x, float y, float z){
     return QuatMake_(w, x, y, z);
 }
 
+
+Quat QuatFromAxisAngle(Vec3 axis, float rads){
+    return QuatFromAxisAngle_(axis, rads);
+}
+
 static inline Quat QuatFromAxisAngle_(Vec3 axis, float rads){
     float h = rads * .5f;
     float s = sinf(h);
     return QuatMake_(cosf(h), axis.x * s, axis.y * s, axis.z * s);
+}
+
+Quat QuatMul(Quat a, Quat b){
+    return QuatMul_(a, b);
 }
 
 static inline Quat QuatMul_(Quat a, Quat b){
@@ -217,6 +226,10 @@ static inline Quat QuatConj_(Quat q){
 static inline Quat QuatNorm_(Quat q){
     float m = sqrtf(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
     return m ? QuatMake_(q.w / m, q.x / m, q.y / m, q.z / m) : q;
+}
+
+Vec3 QuatRotateVec3(Quat q, Vec3 v){
+    return QuatRotateVec3_(q, v);
 }
 
 static inline Vec3 QuatRotateVec3_(Quat q, Vec3 v){
