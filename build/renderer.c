@@ -445,9 +445,13 @@ void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         Vec3 side0 = Vec3Sub(v1_, v0_);
         Vec3 side1 = Vec3Sub(v2_, v0_);
         Vec3 normal = Vec3Cross(side0, side1);
+
+        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
+        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
+        float nDotLos = Vec3Dot(Vec3Norm(invLos), Vec3Norm(normal));
         
         /* reject tris facing away from camera */
-        if (!(normal.z > 0.f)) continue;
+        if (!(nDotLos > -0.1f)) continue;
 
         /* accumulate light */
         int i;

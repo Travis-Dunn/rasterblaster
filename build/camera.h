@@ -35,7 +35,8 @@ typedef struct {
 /* all other aspects of the camera such as fov limits are set to default values
  * #defined in camera.c */
 int CameraMakePerspectiveRH(Camera* cam, float ar, float fovDeg, float* dt);
-void TranslateGlobalLeft(Camera* cam);
+void CameraTranslateGlobalLeft(Camera* cam);
+void CameraTranslateGlobalRight(Camera* cam);
 void UpdateCamera(Camera* cam);
 void UpdateFrustum(Camera* cam);
 

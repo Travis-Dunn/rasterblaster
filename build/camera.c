@@ -47,8 +47,13 @@ int CameraMakePerspectiveRH(Camera* cam, float ar, float fovDeg, float* dt){
     UpdateFrustum(cam);
 }
 
-void TranslateGlobalLeft(Camera* cam){
+void CameraTranslateGlobalLeft(Camera* cam){
     cam->dPosGlobal.x = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTranslateGlobalRight(Camera* cam){
+    cam->dPosGlobal.x = cam->translateFactor * *cam->dt;
     cam->viewDirty = 1;
 }
 

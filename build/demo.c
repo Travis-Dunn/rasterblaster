@@ -40,7 +40,7 @@ void Init(){
     printf("width: %d\n", renderer.framebuffer.w);
     printf("height: %d\n", renderer.framebuffer.h);
 
-    /*
+    /* this is deprecated after I added the CameraMakePerspectiveRH function
     cam.fov = 0.96f;
     cam.ar = (float)renderer.framebuffer.w / renderer.framebuffer.h;
     cam.nearClip = .1f;
@@ -83,7 +83,6 @@ void Init(){
     ground .id = 11;
     ShadowMapperUpdate(&shadowMapper);
     UpdateCamera(&cam);
-    Mat4Printf(&cam.view, "cam.view");
     /*
     puts("Paused - press any key to continue");
     getchar();
@@ -92,15 +91,17 @@ void Init(){
 
 void Render(){
     /* clear to grey */
-    ClearScreen(22);
+    ClearScreen(255);
     DepthBufferClear(&depthbuf, 1.f);
     ClearPickbuf();
     ShadowMapperClear(&shadowMapper, 1.f);
 
     /* some spinning */
+    /*
     carp.rot.x += 0.5f * timer.dt;
     carp.rot.y += -0.3f * timer.dt;
     carp.rot.z += 0.1f * timer.dt;
+    */
 
     ShadowMapperRender(&shadowMapper, &carp);
     /*
@@ -109,8 +110,10 @@ void Render(){
             */
     DrawObj3DLambertShadow(&cam, &carp, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
+    /*
     DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
+            */
     /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
             "float");
@@ -127,7 +130,6 @@ void Update(){
     /*
     UpdateFrustum(&cam);
     */
-    UpdateCamera(&cam);
     static int once = 0;
     if (!once){
         debugCorner("near top left", cam.frustum[0]);
@@ -140,7 +142,6 @@ void Update(){
         debugCorner("far bottom right", cam.frustum[7]);
         once = 1;
     }
-    ShadowMapperUpdate(&shadowMapper);
     UpdateObj3DModelMatrix(&carp);
     UpdateObj3DModelMatrix(&ground);
 
@@ -149,7 +150,19 @@ void Update(){
         if (EventDequeue(eventQueue, &evt) == 0){
             switch (evt.type){
             case EVT_LBUTTONDOWN:{
-                printf("mouse event\n");
+                Mat4Printf(&cam.proj, "cam->proj\n");
+                Mat4Printf(&cam.view, "cam->view\n");
+                /*
+                debugCorner("near top left", cam.frustum[0]);
+                debugCorner("near top right", cam.frustum[1]);
+                debugCorner("near bottom left", cam.frustum[2]);
+                debugCorner("near bottom right", cam.frustum[3]);
+                debugCorner("far top left", cam.frustum[4]);
+                debugCorner("far top right", cam.frustum[5]);
+                debugCorner("far bottom left", cam.frustum[6]);
+                debugCorner("far bottom right", cam.frustum[7]);
+                */
+                printf("&cam.view from demo: %d\n", (int)&cam.view);
             } break;
             case EVT_KEYDOWN: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
@@ -160,8 +173,12 @@ void Update(){
             }
         }
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X)){
-        printf("camera translate x key pressed\n");
-        TranslateGlobalLeft(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X_L)){
+        CameraTranslateGlobalLeft(&cam);
     }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X_R)){
+        CameraTranslateGlobalRight(&cam);
+    }
+    UpdateCamera(&cam);
+    ShadowMapperUpdate(&shadowMapper);
 }

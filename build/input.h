@@ -8,7 +8,8 @@
 
 typedef enum {
     ACTION_NONE = 0,
-    ACTION_CAM_TRANS_X,
+    ACTION_CAM_TRANS_X_L,
+    ACTION_CAM_TRANS_X_R,
     ACTION_COUNT
 } InputAction;
 
