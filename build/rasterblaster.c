@@ -59,11 +59,13 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
         int mouseX = (int)LOWORD(lParam);
         int mouseY = (int)HIWORD(lParam);
         int ret = GetClicked(mouseX, mouseY);
+        /*
         if (ret == 12){
             printf("clicked on the carpfish!\n");
         } else {
             printf("clicked elsewhere, more specifically: %d, %d\n", mouseX, mouseY);
         }
+        */
     } break;
     case WM_KEYDOWN: {
         if (g_EventQueue){

@@ -47,13 +47,123 @@ int CameraMakePerspectiveRH(Camera* cam, float ar, float fovDeg, float* dt){
     UpdateFrustum(cam);
 }
 
-void CameraTranslateGlobalLeft(Camera* cam){
+void CameraTransGlobalXMinus(Camera* cam){
     cam->dPosGlobal.x = -cam->translateFactor * *cam->dt;
     cam->viewDirty = 1;
 }
 
-void CameraTranslateGlobalRight(Camera* cam){
+void CameraTransGlobalXPlus(Camera* cam){
     cam->dPosGlobal.x = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransGlobalYMinus(Camera* cam){
+    cam->dPosGlobal.y = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransGlobalYPlus(Camera* cam){
+    cam->dPosGlobal.y = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransGlobalZMinus(Camera* cam){
+    cam->dPosGlobal.z = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransGlobalZPlus(Camera* cam){
+    cam->dPosGlobal.z = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalXMinus(Camera* cam){
+    cam->dPosLocal.x = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalXPlus(Camera* cam){
+    cam->dPosLocal.x = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalYMinus(Camera* cam){
+    cam->dPosLocal.y = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalYPlus(Camera* cam){
+    cam->dPosLocal.y = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalZMinus(Camera* cam){
+    cam->dPosLocal.z = -cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraTransLocalZPlus(Camera* cam){
+    cam->dPosLocal.z = cam->translateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalXMinus(Camera* cam){
+    cam->dRotGlobal.x = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalXPlus(Camera* cam){
+    cam->dRotGlobal.x = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalYMinus(Camera* cam){
+    cam->dRotGlobal.y = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalYPlus(Camera* cam){
+    cam->dRotGlobal.y = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalZMinus(Camera* cam){
+    cam->dRotGlobal.z = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotGlobalZPlus(Camera* cam){
+    cam->dRotGlobal.z = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalXMinus(Camera* cam){
+    cam->dRotLocal.x = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalXPlus(Camera* cam){
+    cam->dRotLocal.x = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalYMinus(Camera* cam){
+    cam->dRotLocal.y = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalYPlus(Camera* cam){
+    cam->dRotLocal.y = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalZMinus(Camera* cam){
+    cam->dRotLocal.z = -cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalZPlus(Camera* cam){
+    cam->dRotLocal.z = cam->rotateFactor * *cam->dt;
     cam->viewDirty = 1;
 }
 

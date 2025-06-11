@@ -24,6 +24,9 @@ static ShadowMapper shadowMapper;
 static EventQueue* eventQueue;
 static InputSystem inputSystem;
 
+static int debugX, debugY;
+static int frameCount;
+
 void Init(){
     if (EventQueueInit(&eventQueue, 256)){
         printf("problem setting up event queue\n");
@@ -61,7 +64,7 @@ void Init(){
     */
     CameraMakePerspectiveRH(&cam, (float)renderer.framebuffer.w /
             renderer.framebuffer.h, 55.f, &timer.dt);
-    cam.farClip = 10.f;
+    cam.farClip = 20.f;
     /*
     UpdateFrustum(&cam);
     */
@@ -87,6 +90,8 @@ void Init(){
     puts("Paused - press any key to continue");
     getchar();
     */
+    debugX, debugY = 0;
+    frameCount = 0;
 }
 
 void Render(){
@@ -110,14 +115,13 @@ void Render(){
             */
     DrawObj3DLambertShadow(&cam, &carp, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
-    /*
     DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
-            */
     /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
             "float");
     */
+    PutPixel(debugX, debugY, RGBA_INT(255, 0, 255, 255));
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -127,6 +131,8 @@ void debugCorner(char* str, Vec3 v){
 void Update(){
     InputUpdate(&inputSystem, timer.dt);
     UpdateTimer();
+    frameCount++;
+    printf("frame %d\n", frameCount);
     /*
     UpdateFrustum(&cam);
     */
@@ -150,9 +156,9 @@ void Update(){
         if (EventDequeue(eventQueue, &evt) == 0){
             switch (evt.type){
             case EVT_LBUTTONDOWN:{
+                                     /*
                 Mat4Printf(&cam.proj, "cam->proj\n");
                 Mat4Printf(&cam.view, "cam->view\n");
-                /*
                 debugCorner("near top left", cam.frustum[0]);
                 debugCorner("near top right", cam.frustum[1]);
                 debugCorner("near bottom left", cam.frustum[2]);
@@ -161,8 +167,11 @@ void Update(){
                 debugCorner("far top right", cam.frustum[5]);
                 debugCorner("far bottom left", cam.frustum[6]);
                 debugCorner("far bottom right", cam.frustum[7]);
-                */
                 printf("&cam.view from demo: %d\n", (int)&cam.view);
+                */
+                debugX = evt.buf[0];
+                debugY = evt.buf[1];
+                printf("clicked on pixel (%d, %d)\n", debugX, debugY);
             } break;
             case EVT_KEYDOWN: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
@@ -173,11 +182,27 @@ void Update(){
             }
         }
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X_L)){
-        CameraTranslateGlobalLeft(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_X_MINUS)){
+        CameraTransGlobalXMinus(&cam);
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_X_R)){
-        CameraTranslateGlobalRight(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_X_PLUS)){
+        CameraTransGlobalXPlus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_MINUS)){
+        CameraTransGlobalYMinus(&cam);
+        /*
+        puts("Paused - press any key to continue");
+        getchar();
+        */
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_PLUS)){
+        CameraTransGlobalYPlus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Z_MINUS)){
+        CameraTransGlobalZMinus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Z_PLUS)){
+        CameraTransGlobalZPlus(&cam);
     }
     UpdateCamera(&cam);
     ShadowMapperUpdate(&shadowMapper);

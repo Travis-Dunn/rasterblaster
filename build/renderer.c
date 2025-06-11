@@ -451,7 +451,7 @@ void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         float nDotLos = Vec3Dot(Vec3Norm(invLos), Vec3Norm(normal));
         
         /* reject tris facing away from camera */
-        if (!(nDotLos > -0.1f)) continue;
+        if (!(nDotLos > -0.001f)) continue;
 
         /* accumulate light */
         int i;
@@ -561,26 +561,42 @@ static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
 
     /* 2. Pre‑compute denominator and edge deltas */
     float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
-    if (denom == 0.0f) return;          /* Degenerate triangle */
+    if (denom == 0.0f) return;         /* degenerate */ 
 
     /* accumulate contribution from ambient lights */
-   float invDen = 1.0f / denom;
+    float invDen = 1.0f / denom;
 
     for (int y = minY; y <= maxY; ++y)
     {
         for (int x = minX; x <= maxX; ++x)
         {
+            int debug = (x == 587 && y == 517);
+            
+
             /* 3. Barycentric weights (affine) */
             float l0 = ((y1 - y2) * (x - x2) + (x2 - x1) * (y - y2)) * invDen;
             float l1 = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) * invDen;
             float l2 = 1.0f - l0 - l1;
 
             /* Inside test (all weights in [0,1]) */
-            if (l0 < 0.0f || l1 < 0.0f || l2 < 0.0f) continue;
+            if (l0 < -0.001f || l1 < -0.001f || l2 < -0.001f){
+                if (debug){
+                    /*
+                    printf("rejected\n");
+                    */
+                }
+                continue;
+            }
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
+            if (debug){
+                printf("about to perform depth test on debug pixel...\n");
+            }
             if (!DepthBufferTestWrite(db, x, y, depth)) continue;
+            if (debug){
+                printf("depth test passed!\n");
+            }
             
 
             /* 4. Interpolate UV */

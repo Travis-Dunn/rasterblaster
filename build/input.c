@@ -86,8 +86,12 @@ void InputLoadDefaultMappings(InputSystem* input){
     if (input->currentMode == INPUT_MODE_GAME){
         input->mappings = g_GameMappings;
         input->mappingCount = 0;
-        InputAddMapping(input, 'A', 0, ACTION_CAM_TRANS_X_L);
-        InputAddMapping(input, 'D', 0, ACTION_CAM_TRANS_X_R);
+        InputAddMapping(input, 'A', 0, ACTION_CAM_TRANS_G_X_MINUS);
+        InputAddMapping(input, 'D', 0, ACTION_CAM_TRANS_G_X_PLUS);
+        InputAddMapping(input, 'E', 0, ACTION_CAM_TRANS_G_Y_MINUS);
+        InputAddMapping(input, 'Q', 0, ACTION_CAM_TRANS_G_Y_PLUS);
+        InputAddMapping(input, 'W', 0, ACTION_CAM_TRANS_G_Z_MINUS);
+        InputAddMapping(input, 'S', 0, ACTION_CAM_TRANS_G_Z_PLUS);
     }
 }
 
