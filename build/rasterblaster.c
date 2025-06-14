@@ -83,6 +83,23 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
             EventEnqueue(g_EventQueue, &evt);
         }
     } break;
+    case WM_INPUT: {
+        UINT dwSize;
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+        RAWINPUT* raw = (RAWINPUT*)malloc(dwSize);
+        if (!raw) break;
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &dwSize, sizeof(RAWINPUTHEADER));
+        if (raw->header.dwType == RIM_TYPEMOUSE){
+            int deltaX = raw->data.mouse.lLastX;
+            int deltaY = raw->data.mouse.lLastY;
+            Event evt;
+            evt.type = EVT_MOUSEMOVE;
+            evt.buf[1] = deltaX;
+            evt.buf[0] = deltaY;
+            EventEnqueue(g_EventQueue, &evt);
+        }
+        free(raw);
+    } break;
     default:{
     ret = DefWindowProc(hWnd, msg, wParam, lParam);
     } break;
@@ -115,6 +132,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     HDC hdc = GetDC(windowHandle);
     SetStretchBltMode(hdc, COLORONCOLOR);
     ReleaseDC(windowHandle, hdc);
+    
+    /* register for WM_INPUT */
+    RAWINPUTDEVICE rid;
+    rid.usUsagePage = 0x01; /* HID_USAGE_PAGE_GENERIC */
+    rid.usUsage = 0x02; /* HID_USAGE_GENERIC_MOUSE */
+    rid.dwFlags = 0;
+    rid.hwndTarget = windowHandle;
+    RegisterRawInputDevices(&rid, 1, sizeof(rid)); 
 
     MSG msg;
     running = 1;

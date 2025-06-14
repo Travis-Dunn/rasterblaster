@@ -8,7 +8,7 @@
 #define DEFAULT_FARCLIP         100.f
 #define DEFAULT_SENSITIVITY     0.04f
 #define DEFAULT_TRANSLATEFACTOR 1.5f
-#define DEFAULT_ROTATEFACTOR    32.f
+#define DEFAULT_ROTATEFACTOR    2.f
 #define DEFAULT_ZOOMFACTOR      0.04f
 
 int CameraMakePerspectiveRH(Camera* cam, float ar, float fovDeg, float* dt){
@@ -164,6 +164,17 @@ void CameraRotLocalZMinus(Camera* cam){
 
 void CameraRotLocalZPlus(Camera* cam){
     cam->dRotLocal.z = cam->rotateFactor * *cam->dt;
+    cam->viewDirty = 1;
+}
+
+
+void CameraRotLocalXFloat(Camera* cam, float dx){
+    cam->dRotLocal.x = -cam->rotateFactor * *cam->dt * dx;
+    cam->viewDirty = 1;
+}
+
+void CameraRotLocalYFloat(Camera* cam, float dy){
+    cam->dRotLocal.y = -cam->rotateFactor * *cam->dt * dy;
     cam->viewDirty = 1;
 }
 

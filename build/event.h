@@ -6,6 +6,7 @@ typedef enum { /* just one for now, there will be more */
     EVT_LBUTTONDOWN,
     EVT_KEYDOWN,
     EVT_KEYUP,
+    EVT_MOUSEMOVE,
     EVT_COUNT
 } EventType;
 

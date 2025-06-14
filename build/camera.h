@@ -59,6 +59,8 @@ void CameraRotLocalYMinus(Camera* cam);
 void CameraRotLocalYPlus(Camera* cam);
 void CameraRotLocalZMinus(Camera* cam);
 void CameraRotLocalZPlus(Camera* cam);
+void CameraRotLocalXFloat(Camera* cam, float dx);
+void CameraRotLocalYFloat(Camera* cam, float dy);
 void UpdateCamera(Camera* cam);
 void UpdateFrustum(Camera* cam);
 

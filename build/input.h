@@ -32,6 +32,8 @@ typedef enum {
     ACTION_CAM_ROT_L_Y_PLUS,
     ACTION_CAM_ROT_L_Z_MINUS,
     ACTION_CAM_ROT_L_Z_PLUS,
+    ACTION_CAM_ROT_L_X,
+    ACTION_CAM_ROT_L_Y,
     ACTION_COUNT
 } InputAction;
 
@@ -49,32 +51,52 @@ typedef struct {
 } KeyState;
 
 typedef struct {
+    float dx, dy;
+    float accumX, accumY;
+    float sensitivity;
+} MouseState;
+
+typedef struct {
     int keyCode;
     int modifiers;
     InputAction action;
 } KeyMapping;
 
 typedef struct {
+    int axis;
+    InputAction action;
+} MouseMapping;
+
+typedef struct {
     KeyState keys[MAX_KEYS];
     InputMode currentMode;
     KeyMapping* mappings;
+    MouseMapping* mouseMappings;
     int mappingCount;
+    int mouseMappingCount;
 
+    MouseState mouseState;
+
+    /* these arrays are always oversized because of adding the mouse move */
     int actionPressed[ACTION_COUNT];
     int actionJustPressed[ACTION_COUNT];
     int actionJustReleased[ACTION_COUNT];
+    float actionMouseMoved[ACTION_COUNT];
 } InputSystem;
 
 void InputInit(InputSystem* input);
 void InputUpdate(InputSystem* input, float dt);
 void InputHandleKeyEvent(InputSystem* input, int keyCode, int isPressed);
+void InputHandleMouseEvent(InputSystem* input, float dx, float dy);
 void InputSetMode(InputSystem* input, InputMode mode);
 void InputAddMapping(InputSystem* input, int keyCode, int modifiers,
         InputAction action);
+void InputAddMouseMapping(InputSystem* input, int axis, InputAction action);
 void InputClearMappings(InputSystem* input);
 void InputLoadDefaultMappings(InputSystem* input);
 int InputIsActionPressed(InputSystem* input, InputAction action);
 int InputIsActionJustPressed(InputSystem* input, InputAction action);
 int InputIsActionJustReleased(InputSystem* input, InputAction action);
+float InputIsActionMouseMoved(InputSystem* input, InputAction action);
 
 #endif /* INPUT_H */

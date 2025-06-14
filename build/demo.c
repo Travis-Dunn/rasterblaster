@@ -179,6 +179,10 @@ void Update(){
             case EVT_KEYUP: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 0);
             } break;
+            case EVT_MOUSEMOVE: {
+                InputHandleMouseEvent(&inputSystem, (float)evt.buf[0],
+                        (float)evt.buf[1]);
+            } break;
             }
         }
     }
@@ -201,6 +205,15 @@ void Update(){
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Z_PLUS)){
         CameraTransGlobalZPlus(&cam);
+    }
+    float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
+    if (dx != 0.f){
+        printf("mouse move value: %f\n", dx );
+        CameraRotLocalXFloat(&cam, dx);
+    }
+    float dy = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_Y);
+    if (dy != 0.f){
+        CameraRotLocalYFloat(&cam, dy);
     }
     UpdateCamera(&cam);
     ShadowMapperUpdate(&shadowMapper);
