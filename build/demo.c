@@ -102,18 +102,16 @@ void Render(){
     ShadowMapperClear(&shadowMapper, 1.f);
 
     /* some spinning */
-    /*
     carp.rot.x += 0.5f * timer.dt;
     carp.rot.y += -0.3f * timer.dt;
     carp.rot.z += 0.1f * timer.dt;
-    */
 
     ShadowMapperRender(&shadowMapper, &carp);
     /*
     DrawObj3DLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2, 
             &depthbuf);
             */
-    DrawObj3DLambertShadow(&cam, &carp, &renderer.framebuffer, &light[0], 2,
+    DrawObj3DLambertShadowFloat(&cam, &carp, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
     DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
@@ -132,7 +130,9 @@ void Update(){
     InputUpdate(&inputSystem, timer.dt);
     UpdateTimer();
     frameCount++;
+    /*
     printf("frame %d\n", frameCount);
+    */
     /*
     UpdateFrustum(&cam);
     */
@@ -190,10 +190,8 @@ void Update(){
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_MINUS)){
         CameraTransGlobalYMinus(&cam);
-        /*
         puts("Paused - press any key to continue");
         getchar();
-        */
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_PLUS)){
         CameraTransGlobalYPlus(&cam);
