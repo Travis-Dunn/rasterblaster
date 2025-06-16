@@ -9,7 +9,8 @@ void* bitmapMemory;
 int bitmapW;
 int bitmapH;
 
-static EventQueue* g_EventQueue = 0;
+static EventQueue*  g_EventQueue = 0;
+static int          g_WindowActive = 1;
 
 void SetPlatformEventQueue(EventQueue* q){
     g_EventQueue = q;
@@ -36,7 +37,7 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
     OutputDebugStringA("WM_CLOSE\n");
     } break;
     case WM_ACTIVATEAPP:{
-    OutputDebugStringA("WM_ACTIVATEAPP\n");
+        g_WindowActive = (wParam != 0);
     } break;
     case WM_PAINT:{
     PAINTSTRUCT paint;
@@ -84,6 +85,7 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
         }
     } break;
     case WM_INPUT: {
+        if (!g_WindowActive) break;
         UINT dwSize;
         GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
         RAWINPUT* raw = (RAWINPUT*)malloc(dwSize);

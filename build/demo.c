@@ -194,8 +194,10 @@ void Update(){
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_MINUS)){
         CameraTransGlobalYMinus(&cam);
+        /*
         puts("Paused - press any key to continue");
         getchar();
+        */
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_PLUS)){
         CameraTransGlobalYPlus(&cam);
@@ -208,7 +210,9 @@ void Update(){
     }
     float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dx != 0.f){
+        /*
         printf("mouse move value: %f\n", dx );
+        */
         CameraRotLocalXFloat(&cam, dx);
     }
     float dy = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_Y);

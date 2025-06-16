@@ -67,7 +67,8 @@ void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
-
+void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
+        Light* l, int nLights, DepthBuffer* db, ShadowMapper* sm);
 
 
 

@@ -29,7 +29,9 @@ typedef struct {
 /*********    Miscellaneous cached values used by other components    *********/
     float* dt;                  /* delta time seconds */
     Vec3 inverseDir;
-    Vec3 frustum[8]; /* world space: ntl, ntr, nbl, nbr, ftl, ftr, fbl, fbr */
+    /* world space view frustum verts: ntl, ntr, nbl, nbr, ftl, ftr, fbl, fbr */
+    Vec3 frustum[8]; 
+    Frustum viewFrustum;
 } Camera;
 
 /* all other aspects of the camera such as fov limits are set to default values
@@ -62,6 +64,7 @@ void CameraRotLocalZPlus(Camera* cam);
 void CameraRotLocalXFloat(Camera* cam, float dx);
 void CameraRotLocalYFloat(Camera* cam, float dy);
 void UpdateCamera(Camera* cam);
-void UpdateFrustum(Camera* cam);
+void UpdateFrustum(Camera* cam); /* for the array of Vec3 for shadow mapping */
+void UpdateViewFrustum(Camera* cam); /* for the struct of planes for clipping */
 
 #endif /* CAMERA_H */

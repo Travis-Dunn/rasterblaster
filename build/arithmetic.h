@@ -72,4 +72,28 @@ static inline Mat4 Mat4LookAt_(Vec3 eye, Vec3 centre, Vec3 up);
 /* right handed, opengl style */
 Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up);
 
+
+/********************************    Planes   *********************************/
+typedef struct {
+    Vec3 normal;
+    float distance;
+} Plane;
+
+typedef struct {
+    Plane nearPlane, farPlane, leftPlane, rightPlane, topPlane, bottomPlane;
+} Frustum;
+
+/* returns float */
+#define SIGNED_DIST_POINT_PLANE(point, plane)                                  \
+    (Vec3Dot((point), (plane).normal) - (plane).distance)
+/* returns logical int */
+#define POINT_IN_FRUSTUM(point, frustum)                                       \
+    (SIGNED_DIST_POINT_PLANE((point), (frustum)->nearPlane)     <= 0.f &&      \
+     SIGNED_DIST_POINT_PLANE((point), (frustum)->farPlane)      <= 0.f &&      \
+     SIGNED_DIST_POINT_PLANE((point), (frustum)->leftPlane)     <= 0.f &&      \
+     SIGNED_DIST_POINT_PLANE((point), (frustum)->rightPlane)    <= 0.f &&      \
+     SIGNED_DIST_POINT_PLANE((point), (frustum)->topPlane)      <= 0.f &&      \
+     SIGNED_DIST_POINT_PLANE((point), (frustum)->bottomPlane)   <= 0.f)
+
+
 #endif /* ARITHMETIC_H */

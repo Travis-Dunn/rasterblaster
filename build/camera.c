@@ -275,3 +275,33 @@ void UpdateFrustum(Camera* cam){
     cam->frustum[7] = Vec3Add(Vec3Add(fCenter, Vec3Scale(cam->up, -hF))
         , Vec3Scale(cam->right,  wF));
 }
+
+void UpdateViewFrustum(Camera* cam){
+    float tanHalfFov = tanf(cam->fov * 0.5f);
+    float nearHeight = tanHalfFov * cam->nearClip;
+    float nearWidth = nearHeight * cam->ar;
+
+    cam->viewFrustum.nearPlane.normal = Vec3Make(0.f, 0.f, 1.f);
+    cam->viewFrustum.nearPlane.distance = cam->nearClip;
+    cam->viewFrustum.farPlane.normal = Vec3Make(0.f, 0.f, -1.f);
+    cam->viewFrustum.farPlane.distance = cam->farClip;
+    float leftNormalX = nearHeight;
+    float leftNormalZ = nearWidth;
+    float leftLength = 
+        sqrtf(leftNormalX * leftNormalX + leftNormalZ * leftNormalZ);
+    cam->viewFrustum.leftPlane.normal = Vec3Make(leftNormalX / leftLength,
+            0.f, leftNormalZ / leftLength);
+    cam->viewFrustum.leftPlane.distance = 0.f;
+    cam->viewFrustum.rightPlane.normal = Vec3Make(-leftNormalX / leftLength,
+            0.f, leftNormalZ / leftLength);
+    cam->viewFrustum.rightPlane.distance = 0.f;
+    float topNormalY = nearWidth;
+    float topNormalZ = nearHeight;
+    float topLength = sqrtf(topNormalY * topNormalY + topNormalZ * topNormalZ);
+    cam->viewFrustum.topPlane.normal = Vec3Make(0.f, -topNormalY / topLength,
+            topNormalZ / topLength);
+    cam->viewFrustum.topPlane.distance = 0.f;
+    cam->viewFrustum.bottomPlane.normal = Vec3Make(0.f, topNormalY / topLength,
+            topNormalZ / topLength);
+    cam->viewFrustum.bottomPlane.distance = 0.f;
+}
