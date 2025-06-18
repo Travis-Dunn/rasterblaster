@@ -132,12 +132,12 @@ void InputLoadDefaultMappings(InputSystem* input){
         input->mappings = g_GameMappings;
         input->mouseMappings = g_GameMouseMappings;
         input->mappingCount = 0;
-        InputAddMapping(input, 'A', 0, ACTION_CAM_TRANS_G_X_MINUS);
-        InputAddMapping(input, 'D', 0, ACTION_CAM_TRANS_G_X_PLUS);
-        InputAddMapping(input, 'E', 0, ACTION_CAM_TRANS_G_Y_MINUS);
-        InputAddMapping(input, 'Q', 0, ACTION_CAM_TRANS_G_Y_PLUS);
-        InputAddMapping(input, 'W', 0, ACTION_CAM_TRANS_G_Z_MINUS);
-        InputAddMapping(input, 'S', 0, ACTION_CAM_TRANS_G_Z_PLUS);
+        InputAddMapping(input, 'A', 0, ACTION_CAM_TRANS_L_X_MINUS);
+        InputAddMapping(input, 'D', 0, ACTION_CAM_TRANS_L_X_PLUS);
+        InputAddMapping(input, 'E', 0, ACTION_CAM_TRANS_L_Y_MINUS);
+        InputAddMapping(input, 'Q', 0, ACTION_CAM_TRANS_L_Y_PLUS);
+        InputAddMapping(input, 'W', 0, ACTION_CAM_TRANS_L_Z_MINUS);
+        InputAddMapping(input, 'S', 0, ACTION_CAM_TRANS_L_Z_PLUS);
         InputAddMouseMapping(input, 0, ACTION_CAM_ROT_L_X);
         InputAddMouseMapping(input, 1, ACTION_CAM_ROT_L_Y);
     }

@@ -24,6 +24,17 @@ typedef struct {
     int x, y;
 } Point2D;
 
+typedef struct {
+    Vec4 pos;
+    float u, v;
+    Vec4 normal;
+} ClipVertex;
+
+typedef struct {
+    int numTris;
+    ClipVertex tris[2][3];
+} ClipResult;
+
 extern Renderer renderer;
 
 extern void PutPixel_ASM(int x, int y);
@@ -70,7 +81,12 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
 void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
         Light* l, int nLights, DepthBuffer* db, ShadowMapper* sm);
 
-
+static inline float ClipLine_(Vec3 p1, Vec3 p2, Plane plane, Vec3* out);
+static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
+        float t);
+static inline int ClipTriPlane_(ClipVertex in[3], Plane plane,
+        ClipVertex out[4]);
+static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum);
 
 
 void VisualizeBuffer(void* buf, int w, int h, char* type);

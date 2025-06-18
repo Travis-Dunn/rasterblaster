@@ -1017,6 +1017,85 @@ void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
     }
 }
 
+/* if we have a problem, try calling the non-underscore versions */
+static inline float ClipLine_(Vec3 p1, Vec3 p2, Plane plane, Vec3* out){
+    float d1 = SIGNED_DIST_POINT_PLANE(p1, plane);
+    float d2 = SIGNED_DIST_POINT_PLANE(p2, plane);
+    if (d1 * d2 >= 0.f) return -1.f;
+    float t = d1 / (d1 - d2);
+    *out = Vec3Add(p1, Vec3Scale(Vec3Sub(p2, p1), t));
+    return t;
+}
+
+static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
+        float t){
+    ClipVertex result;
+    result.pos = Vec4Add(v1.pos, Vec4Scale(Vec4Sub(v2.pos, v1.pos), t));
+    result.u = v1.u + (v2.u - v1.u) * t;
+    result.v = v1.v + (v2.v - v2.v) * t;
+    result.normal = Vec4Add(v1.normal, Vec4Scale(Vec4Sub(v2.normal, v1.normal),
+                t));
+    return result;
+}
+
+static inline int ClipTriPlane_(ClipVertex in[3], Plane plane,
+        ClipVertex out[4]){
+    int outputCount = 0;
+    ClipVertex current, previous;
+    previous = in[2];
+    for (int i = 0; i < 3; i++){
+        current = in[i];
+        Vec3 currentPos = Vec3Make(current.pos.x, current.pos.y, current.pos.z);
+        Vec3 previousPos = Vec3Make(previous.pos.x, previous.pos.y,
+                previous.pos.z);
+        float currentDist = SIGNED_DIST_POINT_PLANE(currentPos, plane);
+        float previousDist = SIGNED_DIST_POINT_PLANE(previousPos, plane);
+        if (currentDist <= 0.f){
+            if (previousDist > 0.f){
+                Vec3 intersection;
+                float t = ClipLine_(previousPos, currentPos, plane,
+                        &intersection);
+                if (t >= 0.f) out[outputCount++] =
+                    InterpolateVertex_(previous, current, t);
+            }
+            out[outputCount++] = current;
+        } else if (previousDist <= 0.f){
+            Vec3 intersection;
+            float t = ClipLine_(previousPos, currentPos, plane, &intersection);
+            if (t >= 0.f) out[outputCount++] =
+                InterpolateVertex_(previous, current, t);
+        }
+        previous = current;
+    }
+    return outputCount;
+}
 
 
-
+static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum){
+    ClipResult result;
+    ClipVertex buffer1[8], buffer2[8];
+    ClipVertex* in = tri;
+    ClipVertex* out = buffer1;
+    int vertCount = 3;
+    Plane planes[6] = {frustum->nearPlane, frustum->farPlane,
+        frustum->leftPlane, frustum->farPlane, frustum->topPlane,
+        frustum->bottomPlane};
+    for (int p = 0; p < 6; p++){
+        if (!vertCount) break;
+        int newCount = ClipTriPlane_(in, planes[p], out);
+        vertCount = newCount;
+        ClipVertex* temp = in;
+        in = out;
+        out = (out == buffer1)? buffer2 : buffer1;
+    }
+    if (vertCount >= 3){
+        result.numTris = vertCount - 2;
+        if (result.numTris > 2) result.numTris = 2;
+        for (int i = 0; i < result.numTris; i++){
+            result.tris[i][0] = in[0];
+            result.tris[i][1] = in[i + 1];
+            result.tris[i][2] = in[i + 2];
+        }
+    }
+    return result;
+}

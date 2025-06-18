@@ -246,6 +246,7 @@ updateFrustum:
     if (!frustumDirty) return;
 
     UpdateFrustum(cam);
+    UpdateViewFrustum(cam);
 }
 
 void UpdateFrustum(Camera* cam){

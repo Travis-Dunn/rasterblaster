@@ -15,8 +15,10 @@
 
 static Model model;
 static Model groundModel;
+static Model rscHouseModel;
 static Obj3D carp;
 static Obj3D ground;
+static Obj3D rscHouse;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
@@ -74,6 +76,8 @@ void Init(){
     model.tex = LoadBimg("textures/carp.bimg");
     groundModel.mesh = loadOBJ("models/ground.obj");
     groundModel.tex = LoadBimg("textures/dirt.bimg");
+    rscHouseModel.mesh = loadOBJ("models/rsc house.obj");
+    rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
     carp.model = &model;
     carp.scale = Vec3Make(15.f, 15.f, 15.f);
     carp.rot = Vec3Make(0.f, 0.f, 0.f);
@@ -82,6 +86,10 @@ void Init(){
     ground.scale = Vec3Make(1.f, 1.f, 1.f);
     ground.rot = Vec3Make(0.f, 0.f, 0.f);
     ground.pos = Vec3Make(0.f, 0.f, -5.f);
+    rscHouse.model = &rscHouseModel;
+    rscHouse.scale = Vec3Make(1.f, 1.f, 1.f);
+    rscHouse.rot = Vec3Make(0.f, 0.f, 0.f);
+    rscHouse.pos = Vec3Make(3.f, 0.f, -10.f);
     carp.id = 12;
     ground .id = 11;
     ShadowMapperUpdate(&shadowMapper);
@@ -115,6 +123,8 @@ void Render(){
             &depthbuf, &shadowMapper);
     DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
             &depthbuf, &shadowMapper);
+    DrawObj3DLambertShadowFloat(&cam, &rscHouse, &renderer.framebuffer,
+            &light[0], 2, &depthbuf, &shadowMapper);
     /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
             "float");
@@ -150,6 +160,7 @@ void Update(){
     }
     UpdateObj3DModelMatrix(&carp);
     UpdateObj3DModelMatrix(&ground);
+    UpdateObj3DModelMatrix(&rscHouse);
 
     Event evt;
     while (EventQueueNotEmpty(eventQueue)){
@@ -186,27 +197,27 @@ void Update(){
             }
         }
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_X_MINUS)){
-        CameraTransGlobalXMinus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_X_MINUS)){
+        CameraTransLocalXMinus(&cam);
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_X_PLUS)){
-        CameraTransGlobalXPlus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_X_PLUS)){
+        CameraTransLocalXPlus(&cam);
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_MINUS)){
-        CameraTransGlobalYMinus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_Y_MINUS)){
+        CameraTransLocalYMinus(&cam);
         /*
         puts("Paused - press any key to continue");
         getchar();
         */
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Y_PLUS)){
-        CameraTransGlobalYPlus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_Y_PLUS)){
+        CameraTransLocalYPlus(&cam);
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Z_MINUS)){
-        CameraTransGlobalZMinus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_Z_MINUS)){
+        CameraTransLocalZMinus(&cam);
     }
-    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_G_Z_PLUS)){
-        CameraTransGlobalZPlus(&cam);
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_Z_PLUS)){
+        CameraTransLocalZPlus(&cam);
     }
     float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dx != 0.f){

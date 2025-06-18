@@ -31,8 +31,14 @@ Vec3 Vec3Norm                   (Vec3 v);
 /*********************************    Vec4    *********************************/
 
 typedef struct { float x, y, z, w;  } Vec4;
-Vec4 Vec4Make                   (float x, float y, float z, float w);
 static inline Vec4 Vec4Make_    (float x, float y, float z, float w);
+Vec4 Vec4Make                   (float x, float y, float z, float w);
+static inline Vec4 Vec4Add_     (Vec4 a, Vec4 b);
+Vec4 Vec4Add                    (Vec4 a, Vec4 b);
+static inline Vec4 Vec4Sub_     (Vec4 a, Vec4 b);
+Vec4 Vec4Sub                    (Vec4 a, Vec4 b);
+static inline Vec4 Vec4Scale_   (Vec4 v, float s);
+Vec4 Vec4Scale                  (Vec4 v, float s);
 
 /* Column major */
 typedef struct { float m[3][3]; } Mat3;
