@@ -119,12 +119,19 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         /* TODO: logging */
         return 1;   
     }
+
+    RECT windowRect = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+    DWORD windowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU |
+        WS_MINIMIZEBOX;
+    AdjustWindowRect(&windowRect, windowStyle, FALSE);
+    int windowWidth = windowRect.right - windowRect.left;
+    int windowHeight = windowRect.bottom - windowRect.top;
+
     HWND windowHandle = CreateWindowExA(0, WindowClass.lpszClassName, "RasterBlaster", 
 /*            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
  *            CW_USEDEFAULT, CW_USEDEFAULT,*/
-            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
-            WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, WINDOW_WIDTH,
-            WINDOW_HEIGHT,
+            windowStyle | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, windowWidth,
+            windowHeight,
             0, 0, hInstance, 0);
     if (!windowHandle){
         /* TODO: logging */
@@ -171,7 +178,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         int windowHeight = clientRect.bottom - clientRect.top;
         PaintWindow(hdc, &clientRect, 0, 0, windowWidth, windowHeight);
         ReleaseDC(windowHandle, hdc);
-   }
+    }
+    printf("Press any key to exit...\n");
+    getchar();
     return 0;
 }
 

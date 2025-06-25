@@ -146,8 +146,11 @@ void ShadowMapperUpdate(ShadowMapper* sm){
     Mat4Printf(&matLightProj, "matLightProj");
     Mat4Printf(&matLightView, "matLightView");
     */
+    /* For right now, we're separating these
     sm->matTransform = MatMatMul(&matLightProj, &matLightView);
-
+    */
+    sm->matTransform = matLightView;
+    sm->matTransformProj = matLightProj;
 }
 
 

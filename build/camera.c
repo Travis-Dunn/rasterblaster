@@ -8,7 +8,7 @@
 #define DEFAULT_FARCLIP         100.f
 #define DEFAULT_SENSITIVITY     0.04f
 #define DEFAULT_TRANSLATEFACTOR 1.5f
-#define DEFAULT_ROTATEFACTOR    2.f
+#define DEFAULT_ROTATEFACTOR    3.f
 #define DEFAULT_ZOOMFACTOR      0.04f
 
 int CameraMakePerspectiveRH(Camera* cam, float ar, float fovDeg, float* dt){
@@ -183,13 +183,34 @@ void UpdateCamera(Camera* cam){
 
     if (!cam->viewDirty) goto updateProj;
 
+    /*
+    printf("=== Camera updating... ===\n");
+    */
     /* calculate local translation, apply it and global translation */
+    /*
+    printf("pos: (%.2f, %.2f, %.2f)\n", cam->pos.x, cam->pos.y, cam->pos.z);
+    printf("dPosLocal: (%.2f, %.2f, %.2f)\n", cam->dPosLocal.x,
+            cam->dPosLocal.y, cam->dPosLocal.z);
+    printf("dPosGlobal: (%.2f, %.2f, %.2f)\n", cam->dPosGlobal.x,
+            cam->dPosGlobal.y, cam->dPosGlobal.z);
+            */
     Vec3 dx = Vec3Scale(cam->right,      cam->dPosLocal.x);
     Vec3 dy = Vec3Scale(cam->up,         cam->dPosLocal.y);
     Vec3 dz = Vec3Scale(cam->forward,   -cam->dPosLocal.z);
     cam->pos = Vec3Add(cam->pos, Vec3Add(dx, Vec3Add(dy,
                 Vec3Add(dz, cam->dPosGlobal))));
+    /*
+    printf("new pos: (%.2f, %.2f, %.2f)\n", cam->pos.x, cam->pos.y, cam->pos.z);
+    */
     /* calculate and apply global and local rotation */
+    /*
+    printf("rot: (%.2f, %.2f, %.2f, %.2f)\n", cam->rot.w, cam->rot.x,
+            cam->rot.y, cam->rot.z);
+    printf("dRotLocal: (%.2f, %.2f, %.2f)\n", cam->dRotLocal.x,
+            cam->dRotLocal.y, cam->dRotLocal.z);
+    printf("dRotGlobal: (%.2f, %.2f, %.2f)\n", cam->dRotGlobal.x,
+            cam->dRotGlobal.y, cam->dRotGlobal.z);
+            */
     Quat dGPitchQ = QuatFromAxisAngle(cam->gRight,   FRADS(cam->dRotGlobal.x));
     Quat dGYawQ =   QuatFromAxisAngle(cam->gUp,      FRADS(cam->dRotGlobal.y));
     Quat dGRollQ =  QuatFromAxisAngle(cam->gForward, FRADS(cam->dRotGlobal.z));
@@ -198,11 +219,31 @@ void UpdateCamera(Camera* cam){
     Quat dLYawQ =   QuatFromAxisAngle(cam->up,       FRADS(cam->dRotLocal.y));
     Quat dLRollQ =  QuatFromAxisAngle(cam->forward,  FRADS(cam->dRotLocal.z));
     Quat lQ = QuatMul(dLPitchQ, QuatMul(dLYawQ, dLRollQ));
-    cam->rot = QuatMul(gQ, QuatMul(lQ, cam->rot));
+    /* is this order right? */
+    cam->rot = QuatMul(cam->rot, QuatMul(lQ, gQ));
+    /*
+    printf("new rot: (%.2f, %.2f, %.2f, %.2f)\n", cam->rot.w, cam->rot.x,
+            cam->rot.y, cam->rot.z);
+            */
     /* calculate local reference frame */
+    /*
+    printf("forward: (%.2f, %.2f, %.2f)\n", cam->forward.x, cam->forward.y,
+            cam->forward.z);
+    printf("up: (%.2f, %.2f, %.2f)\n", cam->up.x, cam->up.y, cam->up.z);
+    printf("right: (%.2f, %.2f, %.2f)\n", cam->right.x, cam->right.y,
+            cam->right.z);
+            */
+
     cam->forward =  QuatRotateVec3(cam->rot, cam->gForward);
     cam->up =       QuatRotateVec3(cam->rot, cam->gUp);
     cam->right =    QuatRotateVec3(cam->rot, cam->gRight);
+    /*
+    printf("new forward: (%.2f, %.2f, %.2f)\n", cam->forward.x, cam->forward.y,
+            cam->forward.z);
+    printf("new up: (%.2f, %.2f, %.2f)\n", cam->up.x, cam->up.y, cam->up.z);
+    printf("new right: (%.2f, %.2f, %.2f)\n", cam->right.x, cam->right.y,
+            cam->right.z);
+            */
     /* update view matrix */
     cam->view = Mat4LookAt(cam->pos, Vec3Add(cam->pos, cam->forward), cam->up);
     /* reset flag */
@@ -305,4 +346,25 @@ void UpdateViewFrustum(Camera* cam){
     cam->viewFrustum.bottomPlane.normal = Vec3Make(0.f, topNormalY / topLength,
             topNormalZ / topLength);
     cam->viewFrustum.bottomPlane.distance = 0.f;
+}
+
+void CameraPrint(Camera* cam){
+    printf("===================================\n");
+    printf("pos: (%.2f, %.2f, %.2f)\n", cam->pos.x, cam->pos.y, cam->pos.z);
+    printf("right: (%.2f, %.2f, %.2f)\n", cam->right.x, cam->right.y,
+            cam->right.z);
+    printf("up: (%.2f, %.2f, %.2f)\n", cam->up.x, cam->up.y, cam->up.z);
+    printf("forward: (%.2f, %.2f, %.2f)\n", cam->forward.x, cam->forward.y,
+            cam->forward.z);
+    printf("gRight: (%.2f, %.2f, %.2f)\n", cam->gRight.x, cam->gRight.y,
+            cam->gRight.z);
+    printf("gUp: (%.2f, %.2f, %.2f)\n", cam->gUp.x, cam->gUp.y, cam->gUp.z);
+    printf("gForward: (%.2f, %.2f, %.2f)\n", cam->gForward.x, cam->gForward.y,
+            cam->gForward.z);
+}
+
+
+void CameraRotSnapLocalYMinus(Camera* cam, float deg){
+    cam->dRotLocal.y = deg;
+    cam->viewDirty = 1;
 }

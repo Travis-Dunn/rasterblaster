@@ -39,6 +39,7 @@ static inline Vec4 Vec4Sub_     (Vec4 a, Vec4 b);
 Vec4 Vec4Sub                    (Vec4 a, Vec4 b);
 static inline Vec4 Vec4Scale_   (Vec4 v, float s);
 Vec4 Vec4Scale                  (Vec4 v, float s);
+Vec4 Vec4Lerp                   (Vec4 a, Vec4 b, float t);
 
 /* Column major */
 typedef struct { float m[3][3]; } Mat3;

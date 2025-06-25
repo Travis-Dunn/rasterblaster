@@ -66,5 +66,7 @@ void CameraRotLocalYFloat(Camera* cam, float dy);
 void UpdateCamera(Camera* cam);
 void UpdateFrustum(Camera* cam); /* for the array of Vec3 for shadow mapping */
 void UpdateViewFrustum(Camera* cam); /* for the struct of planes for clipping */
+void CameraPrint(Camera* cam);
+void CameraRotSnapLocalYMinus(Camera* cam, float deg);
 
 #endif /* CAMERA_H */

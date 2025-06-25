@@ -28,6 +28,7 @@ typedef struct {
     Vec4 pos;
     float u, v;
     Vec4 normal;
+    Vec4 shadow;
 } ClipVertex;
 
 typedef struct {
@@ -35,12 +36,27 @@ typedef struct {
     ClipVertex tris[2][3];
 } ClipResult;
 
+typedef struct {
+    Vec4 verts[8];
+    int vertCount;
+} NGon;
+
+typedef struct {
+    Vec4 v0, v1, v2;
+} Tri;
+
+typedef struct {
+    Tri tris[6];
+    int count;
+} TriCluster;
+
 extern Renderer renderer;
 
 extern void PutPixel_ASM(int x, int y);
 static inline void PutPixel_(int x, int y, int c);
 void PutPixel_external(int x, int y, int c);
 void PutPixel_external_safe(int x, int y, int c);
+void BlendPixel_(int x, int y, int c);
 static inline void DrawLineOct0_(int x0, int y0, int dx, int dy, int xdir, 
         int c);
 static inline void DrawLineOct1_(int x0, int y0, int dx, int dy, int xdir,
@@ -49,6 +65,9 @@ static inline void DrawHorizontalLine_(int x0, int y0, int x1, int c);
 static inline void DrawVeritcalLine_(int x0, int y0, int y1, int c);
 static inline void DrawSlopeOneLine_(int x0, int y0, int y1, int c);
 static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
+static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db);
+static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db);
+static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
@@ -69,6 +88,8 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
         float x0, float y0, float z0, float u0, float v0, float x1, float y1, float z1,
         float u1, float v1, float x2, float y2, float z2, float u2, float v2
         , ShadowMapper* sm, Vec4 sh0, Vec4 sh1, Vec4 sh2);
+static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
+        DepthBuffer* db, Framebuffer* fb);
 
 
 
@@ -80,6 +101,8 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
         Light* l, int nLights, DepthBuffer* db, ShadowMapper* sm);
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
+        DepthBuffer* db);
 
 static inline float ClipLine_(Vec3 p1, Vec3 p2, Plane plane, Vec3* out);
 static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
@@ -87,7 +110,11 @@ static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
 static inline int ClipTriPlane_(ClipVertex in[3], Plane plane,
         ClipVertex out[4]);
 static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum);
-
+static inline int PointInsidePlane_(Vec4 point, int plane);
+static inline Vec4 LinePlaneIntersect_(Vec4 a, Vec4 b, int plane);
+static inline NGon TriPlaneClip_(NGon input, int plane);
+static inline NGon TriClip_(Vec4 v0, Vec4 v1, Vec4 v2);
+static inline TriCluster Triangulate_(NGon ngon);
 
 void VisualizeBuffer(void* buf, int w, int h, char* type);
 void ClearScreen_(unsigned char grey);
@@ -102,6 +129,7 @@ void ClearScreen_(unsigned char grey);
 #define DrawTri DrawTri_
 #define ClearScreen ClearScreen_
 #define RGBA_INT(R, G, B, A) ((A << 24) | (R << 16) | (G << 8) | B)
+#define GETA(c) ((c >> 24) & 0xFF)
 #define GETR(c) ((c >> 16) & 0xFF)
 #define GETG(c) ((c >>  8) & 0xFF)
 #define GETB(c) ( c        & 0xFF)

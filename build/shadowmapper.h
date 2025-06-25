@@ -11,6 +11,7 @@ typedef struct {
     int w, h;
     int sampleCount;
     Mat4 matTransform;
+    Mat4 matTransformProj;
     float bias;
     Camera* cam;
     Vec3 lightDir;

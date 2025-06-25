@@ -18,6 +18,9 @@
 *.sdf
 *.opensdf
 
+# misc
+*.mtl
+
 # Build directories
 Debug/
 Release/

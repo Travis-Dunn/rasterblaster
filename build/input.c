@@ -15,11 +15,7 @@ void InputInit(InputSystem* input){
 }
 
 void InputUpdate(InputSystem* input, float dt){
-    for (int i = 0; i < MAX_KEYS; i++){
-        input->keys[i].justPressed = 0;
-        input->keys[i].justReleased = 0;
-    }
-    for (int i = 0; i < ACTION_COUNT; i++){
+   for (int i = 0; i < ACTION_COUNT; i++){
         input->actionJustPressed[i] = 0;
         input->actionJustReleased[i] = 0;
         input->actionPressed[i] = 0;
@@ -53,6 +49,10 @@ void InputUpdate(InputSystem* input, float dt){
         } else {
             input->actionMouseMoved[mapping->action] = mouseState->dy;
         }
+    }
+    for (int i = 0; i < MAX_KEYS; i++){
+        input->keys[i].justPressed = 0;
+        input->keys[i].justReleased = 0;
     }
     input->mouseState.dx = 0.f;
     input->mouseState.dy = 0.f;
@@ -140,6 +140,13 @@ void InputLoadDefaultMappings(InputSystem* input){
         InputAddMapping(input, 'S', 0, ACTION_CAM_TRANS_L_Z_PLUS);
         InputAddMouseMapping(input, 0, ACTION_CAM_ROT_L_X);
         InputAddMouseMapping(input, 1, ACTION_CAM_ROT_L_Y);
+        InputAddMapping(input, 'M', 0, ACTION_CAM_ROT_L_Y_MINUS);
+        InputAddMapping(input, 'B', 0, ACTION_CAM_ROT_L_Y_PLUS);
+        InputAddMapping(input, 'H', 0, ACTION_CAM_ROT_L_X_MINUS);
+        InputAddMapping(input, 'N', 0, ACTION_CAM_ROT_L_X_PLUS);
+        /*
+        InputAddMapping(input, 'V', 0, ACTION_CAM_ROT_SNAP_L_Y_MINUS);
+        */
     }
 }
 
@@ -174,3 +181,6 @@ float InputIsActionMouseMoved(InputSystem* input, InputAction action){
     }
     return input->actionMouseMoved[action];   
 }
+
+
+

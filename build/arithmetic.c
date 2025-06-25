@@ -213,6 +213,15 @@ Vec4 Vec4Make(float x, float y, float z, float w){
     return Vec4Make_(x, y, z, w);
 }
 
+Vec4 Vec4Lerp(Vec4 a, Vec4 b, float t){
+    Vec4 result;
+    result.x = a.x + t * (b.x - a.x);
+    result.y = a.y + t * (b.y - a.y);
+    result.z = a.z + t * (b.z - a.z);
+    result.w = a.w + t * (b.w - a.w);
+    return result;
+}
+
 static inline Quat QuatMake_(float w, float x, float y, float z){
     Quat q; q.w = w; q.x = x; q.y = y; q.z = z; return q;
 }
@@ -240,7 +249,7 @@ static inline Quat QuatMul_(Quat a, Quat b){
     return QuatMake_(a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
                      a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
                      a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
-                     a.w * b.z + a.x * b.y + a.y * b.x + a.z * b.w);
+                     a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w);
 }
 
 static inline Quat QuatConj_(Quat q){

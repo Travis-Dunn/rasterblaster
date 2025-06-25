@@ -21,8 +21,37 @@ void PutPixel_external(int x, int y, int c){
 
 void PutPixel_external_safe(int x, int y, int c){
     if (x >= renderer.framebuffer.w || x < 0 ||
-        y >= renderer.framebuffer.h || y < 0) return;
+        y >= renderer.framebuffer.h || y < 0) {
+        printf("Out of bounds PutPixel: (%d, %d)\n", x, y);
+        return;
+    }
     PutPixel_(x, y, c);
+}
+
+void BlendPixel_(int x, int y, int c){
+    if (x >= renderer.framebuffer.w || x < 0 ||
+        y >= renderer.framebuffer.h || y < 0) return;
+ 
+    int* addr = (int*)renderer.framebuffer.buf +
+        (y * renderer.framebuffer.w + x); 
+    unsigned char a = GETA(c);
+    if (a == 0) return;
+    if (a == 255){
+        *addr = c;
+        return;
+    }
+    int fbval = *addr;
+    unsigned char fba = GETA(fbval);
+    unsigned char fbr = GETR(fbval);
+    unsigned char fbg = GETG(fbval);
+    unsigned char fbb = GETB(fbval);
+    unsigned char r =   GETR(c);
+    unsigned char g =   GETG(c);
+    unsigned char b =   GETB(c);
+    unsigned char r_ = ((255 - a) * fbr + a * r) / 255;
+    unsigned char g_ = ((255 - a) * fbg + a * g) / 255;
+    unsigned char b_ = ((255 - a) * fbb + a * b) / 255;
+    *addr = RGBA_INT(r_, g_, b_, fba);
 }
 
 static inline void DrawLineOct0_(int x0, int y0, int dx, int dy, int xdir, 
@@ -563,7 +592,9 @@ static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
     /* 2. Pre‑compute denominator and edge deltas */
     float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
     if (denom == 0.0f){
+        /*
         printf("degen, coords: (%d, %d), (%d, %d), (%d, %d)\n", x0, y0, x1, y1, x2, y2);
+        */
         return;
     }
 
@@ -693,6 +724,7 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
+            
             if (!DepthBufferTestWrite(db, x, y, depth)) continue;
             
 
@@ -707,9 +739,24 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
             int ty = (int)(sy * (sm->h - 1) + 0.5f);
             
             int lit = 0;
+            /*
             if (tx < 0 || ty < 0 || tx >= sm->w || ty >= sm->h){
                 printf("Tried to sample outside of shadow map bounds\n");
+                printf("sh0: (%.2f, %.2f, %.2f)\n", sh0.x, sh0.y, sh0.z);
+
+                printf("sh1: (%.2f, %.2f, %.2f)\n", sh1.x, sh1.y, sh1.z);
+
+                printf("sh2: (%.2f, %.2f, %.2f)\n", sh2.x, sh2.y, sh2.z);
+                puts("paused\n");
+                getchar();
             }
+            */
+            /* clamp for debug purposes only - better solution later */
+            tx = tx < 0 ? 0 : tx;
+            tx = tx >= sm->w ? sm->w - 1 : tx;
+            ty = ty < 0 ? 0 : ty;
+            ty = ty >= sm->h ? sm->h - 1 : ty;
+            
             float sample = sm->buf[ty * sm->w + tx];
             lit = sz - 0.004f <= sample;
 
@@ -930,90 +977,152 @@ void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
 
         Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
         Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
-        float nDotLos = Vec3Dot(Vec3Norm(invLos), Vec3Norm(normal));
+        Vec3 normalizedNormal = Vec3Norm(normal);
+        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
         
         /* reject tris facing away from camera */
         if (!(nDotLos > -0.001f)) continue;
 
-        /* accumulate light */
-        int i;
-        int rAcc = 0;
-        int gAcc = 0;
-        int bAcc = 0;
-        int ldra = 0;
-        int ldga = 0;
-        int ldba = 0;
-        for (i = 0; i < nLights; i++){
-            if (l[i].type == LIGHT_AMBIENT){
-                rAcc += GETR(l[i].rgb);
-                gAcc += GETG(l[i].rgb);
-                bAcc += GETB(l[i].rgb);
+        /* clipping */
+        Vec4 normalizedNormal4 = Vec4Make(normalizedNormal.x,
+                normalizedNormal.y, normalizedNormal.z, 0.f);
+        ClipVertex clipVerts[3];
+        clipVerts[0].pos = v0;
+        clipVerts[0].u = tu0;
+        clipVerts[0].v = tv0;
+        clipVerts[0].normal = normalizedNormal4;
+        clipVerts[0].shadow = vs0;
+        clipVerts[1].pos = v1;
+        clipVerts[1].u = tu1;
+        clipVerts[1].v = tv1;
+        clipVerts[1].normal = normalizedNormal4;
+        clipVerts[1].shadow = vs1;
+        clipVerts[2].pos = v2;
+        clipVerts[2].u = tu2;
+        clipVerts[2].v = tv2;
+        clipVerts[2].normal = normalizedNormal4;
+        clipVerts[2].shadow = vs2;
+        
+        ClipResult clipped = ClipTri_(clipVerts, &cam->viewFrustum);
+
+        for (int j = 0; j < clipped.numTris; j++){
+            Vec4 cv0 = clipped.tris[j][0].pos;
+            Vec4 cv1 = clipped.tris[j][1].pos;
+            Vec4 cv2 = clipped.tris[j][2].pos;
+            float ctu0 = clipped.tris[j][0].u;
+            float ctv0 = clipped.tris[j][0].v;
+            float ctu1 = clipped.tris[j][1].u;
+            float ctv1 = clipped.tris[j][1].v;
+            float ctu2 = clipped.tris[j][2].u;
+            float ctv2 = clipped.tris[j][2].v;
+            Vec4 cs0 = clipped.tris[j][0].shadow;
+            Vec4 cs1 = clipped.tris[j][1].shadow;
+            Vec4 cs2 = clipped.tris[j][2].shadow;
+            /* flat shading, all normals are the same */
+            Vec4 cn = clipped.tris[j][0].normal;
+            Vec3 cn3 = Vec3Make(cn.x, cn.y, cn.z);
+
+            /* accumulate light */
+            int i;
+            int rAcc = 0;
+            int gAcc = 0;
+            int bAcc = 0;
+            int ldra = 0;
+            int ldga = 0;
+            int ldba = 0;
+            for (i = 0; i < nLights; i++){
+                if (l[i].type == LIGHT_AMBIENT){
+                    rAcc += GETR(l[i].rgb);
+                    gAcc += GETG(l[i].rgb);
+                    bAcc += GETB(l[i].rgb);
+                }
+                if (l[i].type == LIGHT_DIRECTIONAL){
+                    float s = Vec3Dot(cn3, Vec3Norm(l[i].inverseDir));
+                    s = s > 0.f ? s : 0.f;
+                    s = s <= 1.f ? s : 1.f;
+                    ldra += (int)(GETR(l[i].rgb) * s);
+                    ldga += (int)(GETG(l[i].rgb) * s);
+                    ldba += (int)(GETB(l[i].rgb) * s);
+                }
             }
-            if (l[i].type == LIGHT_DIRECTIONAL){
-                float s = Vec3Dot(Vec3Norm(normal), Vec3Norm(l[i].inverseDir));
-                s = s > 0.f ? s : 0.f;
-                s = s <= 1.f ? s : 1.f;
-                ldra += (int)(GETR(l[i].rgb) * s);
-                ldga += (int)(GETG(l[i].rgb) * s);
-                ldba += (int)(GETB(l[i].rgb) * s);
+            rAcc = rAcc > 255 ? 255 : rAcc;
+            gAcc = gAcc > 255 ? 255 : gAcc;
+            bAcc = bAcc > 255 ? 255 : bAcc;
+            ldra = ldra > 255 ? 255 : ldra;
+            ldga = ldga > 255 ? 255 : ldga;
+            ldba = ldba > 255 ? 255 : ldba;
+            float lR = rAcc / 255.f;
+            float lG = gAcc / 255.f;
+            float lB = bAcc / 255.f;
+            float ldraf = ldra / 255.f;
+            float ldgaf = ldga / 255.f;
+            float ldbaf = ldba / 255.f;
+            Vec3 la = Vec3Make(lR, lG, lB); 
+            Vec3 ld = Vec3Make(ldraf, ldgaf, ldbaf);
+            /* view -> clip */
+            cv0 = MatVertMul(&cam->proj, cv0);
+            cv1 = MatVertMul(&cam->proj, cv1);
+            cv2 = MatVertMul(&cam->proj, cv2);
+            cs0 = MatVertMul(&sm->matTransformProj, cs0);
+            cs1 = MatVertMul(&sm->matTransformProj, cs1);
+            cs2 = MatVertMul(&sm->matTransformProj, cs2);
+            /* clip -> NDC (clipping not yet implemented) */
+            cv0.x /= cv0.w;
+            cv0.y /= cv0.w;
+            cv0.z /= cv0.w;
+            cv1.x /= cv1.w;
+            cv1.y /= cv1.w;
+            cv1.z /= cv1.w;
+            cv2.x /= cv2.w;
+            cv2.y /= cv2.w;
+            cv2.z /= cv2.w;
+
+            /*
+            if (cv0.x > 1.f || cv0.x < -1.f ||
+                cv0.y > 1.f || cv0.y < -1.f ||
+                cv0.z > 1.f || cv0.z < -1.f ||
+                cv1.x > 1.f || cv1.x < -1.f ||
+                cv1.y > 1.f || cv1.y < -1.f ||
+                cv1.z > 1.f || cv1.z < -1.f ||
+                cv2.x > 1.f || cv2.x < -1.f ||
+                cv2.y > 1.f || cv2.y < -1.f ||
+                cv2.z > 1.f || cv2.z < -1.f) {
+                return;
+                printf("some verts were out of -1 to +1\n");
+                printf("%.2f, %.2f, %.2f\n"
+                        "%.2f, %.2f, %.2f\n"
+                        "%.2f, %.2f, %.2f\n", cv0.x, cv0.y, cv0.z, cv1.x, cv1.y,
+                        cv1.z, cv2.x, cv2.y, cv2.z);
+                puts("paused\n");
+                getchar();
             }
+            */
+
+            
+            cs0.x /= cs0.w;
+            cs0.y /= cs0.w;
+            cs0.z /= cs0.w;
+            cs1.x /= cs1.w;
+            cs1.y /= cs1.w;
+            cs1.z /= cs1.w;
+            cs2.x /= cs2.w;
+            cs2.y /= cs2.w;
+            cs2.z /= cs2.w;
+            /* convert shadow verts to screen space, or perhaps not? */
+            cs0.x = (cs0.x * 0.5f + 0.5f);
+            cs0.y = (0.5f - cs0.y * 0.5f);
+            cs1.x = (cs1.x * 0.5f + 0.5f);
+            cs1.y = (0.5f - cs1.y * 0.5f);
+            cs2.x = (cs2.x * 0.5f + 0.5f);
+            cs2.y = (0.5f - cs2.y * 0.5f);
+            cs0.z = cs0.z * 0.5f + 0.5f;
+            cs1.z = cs1.z * 0.5f + 0.5f;
+            cs2.z = cs2.z * 0.5f + 0.5f;
+
+            TexturedLambertShadowFloatTri_(obj->model->tex, la, obj->id, db, ld, cv0.x, cv0.y, cv0.z,
+                ctu0, ctv0, cv1.x, cv1.y, cv1.z, ctu1, ctv1, cv2.x, cv2.y, cv2.z, ctu2, ctv2
+                , sm, cs0, cs1, cs2);
         }
-        rAcc = rAcc > 255 ? 255 : rAcc;
-        gAcc = gAcc > 255 ? 255 : gAcc;
-        bAcc = bAcc > 255 ? 255 : bAcc;
-        ldra = ldra > 255 ? 255 : ldra;
-        ldga = ldga > 255 ? 255 : ldga;
-        ldba = ldba > 255 ? 255 : ldba;
-        float lR = rAcc / 255.f;
-        float lG = gAcc / 255.f;
-        float lB = bAcc / 255.f;
-        float ldraf = ldra / 255.f;
-        float ldgaf = ldga / 255.f;
-        float ldbaf = ldba / 255.f;
-        Vec3 la = Vec3Make(lR, lG, lB); 
-        Vec3 ld = Vec3Make(ldraf, ldgaf, ldbaf);
- 
-        /* view -> clip */
-        v0 = MatVertMul(&cam->proj, v0);
-        v1 = MatVertMul(&cam->proj, v1);
-        v2 = MatVertMul(&cam->proj, v2);
-
-        /* clip -> NDC (clipping not yet implemented) */
-        v0.x /= v0.w;
-        v0.y /= v0.w;
-        v0.z /= v0.w;
-        v1.x /= v1.w;
-        v1.y /= v1.w;
-        v1.z /= v1.w;
-        v2.x /= v2.w;
-        v2.y /= v2.w;
-        v2.z /= v2.w;
-
-        /* also do this for shadow verts */
-        vs0.x /= vs0.w;
-        vs0.y /= vs0.w;
-        vs0.z /= vs0.w;
-        vs1.x /= vs1.w;
-        vs1.y /= vs1.w;
-        vs1.z /= vs1.w;
-        vs2.x /= vs2.w;
-        vs2.y /= vs2.w;
-        vs2.z /= vs2.w;
-
-        /* convert shadow verts to screen space, or perhaps not? */
-        vs0.x = (vs0.x * 0.5f + 0.5f);
-        vs0.y = (0.5f - vs0.y * 0.5f);
-        vs1.x = (vs1.x * 0.5f + 0.5f);
-        vs1.y = (0.5f - vs1.y * 0.5f);
-        vs2.x = (vs2.x * 0.5f + 0.5f);
-        vs2.y = (0.5f - vs2.y * 0.5f);
-        vs0.z = vs0.z * 0.5f + 0.5f;
-        vs1.z = vs1.z * 0.5f + 0.5f;
-        vs2.z = vs2.z * 0.5f + 0.5f;
-
-        TexturedLambertShadowFloatTri_(obj->model->tex, la, obj->id, db, ld, v0.x, v0.y, v0.z,
-                tu0, tv0, v1.x, v1.y, v1.z, tu1, tv1, v2.x, v2.y, v2.z, tu2, tv2
-                , sm, vs0, vs1, vs2);
     }
 }
 
@@ -1032,8 +1141,10 @@ static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
     ClipVertex result;
     result.pos = Vec4Add(v1.pos, Vec4Scale(Vec4Sub(v2.pos, v1.pos), t));
     result.u = v1.u + (v2.u - v1.u) * t;
-    result.v = v1.v + (v2.v - v2.v) * t;
+    result.v = v1.v + (v2.v - v1.v) * t;
     result.normal = Vec4Add(v1.normal, Vec4Scale(Vec4Sub(v2.normal, v1.normal),
+                t));
+    result.shadow = Vec4Add(v1.shadow, Vec4Scale(Vec4Sub(v2.shadow, v1.shadow),
                 t));
     return result;
 }
@@ -1078,7 +1189,7 @@ static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum){
     ClipVertex* out = buffer1;
     int vertCount = 3;
     Plane planes[6] = {frustum->nearPlane, frustum->farPlane,
-        frustum->leftPlane, frustum->farPlane, frustum->topPlane,
+        frustum->leftPlane, frustum->rightPlane, frustum->topPlane,
         frustum->bottomPlane};
     for (int p = 0; p < 6; p++){
         if (!vertCount) break;
@@ -1096,6 +1207,597 @@ static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum){
             result.tris[i][1] = in[i + 1];
             result.tris[i][2] = in[i + 2];
         }
+    }
+    return result;
+}
+
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
+        DepthBuffer* db){
+    assert(cam);
+    assert(obj);
+    assert(fb);
+    assert(db);
+
+    int triCount = obj->model->mesh->indexCount / 9;
+
+    Mat4 mModelView = MatMatMul(&cam->view, &obj->matModel);
+    
+    for (int i = 0; i < triCount; i++){
+        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
+        /* we are pulling out stuff that we don't need, but that's just because
+         * I don't feel like making a version of GetTriIndices and GetVertex 
+         * that only get the positions, because it would only be used for 
+         * wireframe/debugging */
+        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
+        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6,
+                &i7, &i8);
+
+        /* use indices to get data */ 
+        Vec4 v0, v1, v2, n0, n1, n2;
+        float tu0, tv0, tu1, tv1, tu2, tv2;
+
+        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        
+        /* model -> world -> view */
+        /*
+        v0 = MatVertMul(&mModelView, v0);
+        v1 = MatVertMul(&mModelView, v1);
+        v2 = MatVertMul(&mModelView, v2);
+        */
+        v0 = MatVertMul(&obj->matModel, v0);
+        v1 = MatVertMul(&obj->matModel, v1);
+        v2 = MatVertMul(&obj->matModel, v2);
+        v0 = MatVertMul(&cam->view, v0);
+        v1 = MatVertMul(&cam->view, v1);
+        v2 = MatVertMul(&cam->view, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
+        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
+        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
+        Vec3 side0 = Vec3Sub(v1_, v0_);
+        Vec3 side1 = Vec3Sub(v2_, v0_);
+        Vec3 normal = Vec3Cross(side0, side1);
+
+        /* pretty sure this line is a no-op */
+        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
+        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
+        Vec3 normalizedNormal = Vec3Norm(normal);
+        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (!(nDotLos > -0.001f)) continue;
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+
+        /*
+        ClipVertex clipVerts[3];
+        Vec4 empty = Vec4Make(0.f, 0.f, 0.f, 0.f);
+        clipVerts[0].pos = v0;
+        clipVerts[0].normal = empty;
+        clipVerts[0].shadow = empty;
+        clipVerts[0].u = 0.f;
+        clipVerts[0].v = 0.f;
+        clipVerts[1].pos = v1;
+        clipVerts[1].normal = empty;
+        clipVerts[1].shadow = empty;
+        clipVerts[1].u = 0.f;
+        clipVerts[1].v = 0.f;
+        clipVerts[2].pos = v2;
+        clipVerts[2].normal = empty;
+        clipVerts[2].shadow = empty;
+        clipVerts[2].u = 0.f;
+        clipVerts[2].v = 0.f;
+
+        ClipResult clipResult = ClipTri_(clipVerts, &cam->viewFrustum);
+        */
+
+        NGon result = TriClip_(v0, v1, v2);
+        TriCluster cluster = Triangulate_(result);
+
+        for (int j = 0; j < cluster.count; j++){
+            Vec4 v0 = cluster.tris[j].v0;
+            Vec4 v1 = cluster.tris[j].v1;
+            Vec4 v2 = cluster.tris[j].v2;
+            /* view -> clip */
+            /*
+            v0 = MatVertMul(&cam->proj, v0);
+            v1 = MatVertMul(&cam->proj, v1);
+            v2 = MatVertMul(&cam->proj, v2);
+            */
+    
+            v0.x /= v0.w;
+            v0.y /= v0.w;
+            v0.z /= v0.w;
+            v1.x /= v1.w;
+            v1.y /= v1.w;
+            v1.z /= v1.w;
+            v2.x /= v2.w;
+            v2.y /= v2.w;
+            v2.z /= v2.w;
+
+            /*
+            if (v0.x < -1.f || v0.x > 1.f ||
+                v0.y < -1.f || v0.y > 1.f ||
+                v0.z < -1.f || v0.z > 1.f ||
+                v1.x < -1.f || v1.x > 1.f ||
+                v1.y < -1.f || v1.y > 1.f ||
+                v1.z < -1.f || v1.z > 1.f ||
+                v2.x < -1.f || v2.x > 1.f ||
+                v2.y < -1.f || v2.y > 1.f ||
+                v2.z < -1.f || v2.z > 1.f) continue;
+                */
+
+
+
+
+            /*
+            assert(v0.x >= -1.f); assert(v0.x <= 1.f);
+            assert(v0.y >= -1.f); assert(v0.y <= 1.f);
+            assert(v0.z >= -1.f); assert(v0.z <= 1.f);
+            assert(v1.x >= -1.f); assert(v1.x <= 1.f);
+            assert(v1.y >= -1.f); assert(v1.y <= 1.f);
+            assert(v1.z >= -1.f); assert(v1.z <= 1.f);
+            assert(v2.x >= -1.f); assert(v2.x <= 1.f);
+            assert(v2.y >= -1.f); assert(v2.y <= 1.f);
+            assert(v2.z >= -1.f); assert(v2.z <= 1.f);
+            */
+
+            Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
+            Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
+            Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
+        
+            DrawWireframeTri_(ndc0, ndc1, ndc2, db, fb);
+        }
+    }
+}
+
+static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
+        DepthBuffer* db, Framebuffer* fb){
+    /* ndc -> floating point screen space for x and y */
+    int w = fb->w;
+    int h = fb->h;
+    ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
+    ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
+    ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
+    ndc1.y = (0.5f - ndc1.y * 0.5f) * h;
+    ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
+    ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
+    
+    /*
+    assert(ndc0.x >= 0.f); assert(ndc0.x < w);
+    assert(ndc0.y >= 0.f); assert(ndc0.y < h);
+    assert(ndc1.x >= 0.f); assert(ndc1.x < w);
+    assert(ndc1.y >= 0.f); assert(ndc1.y < h);
+    assert(ndc2.x >= 0.f); assert(ndc2.x < w);
+    assert(ndc2.y >= 0.f); assert(ndc2.y < h);
+    */
+
+    /*
+    if (ndc0.z == 0.f || ndc1.z == 0.f || ndc2.z == 0.f){
+    printf("z0: %.3f, z1: %.3f, z2: %.3f\n", ndc0.z, ndc1.z, ndc2.z);
+    }
+    */
+
+    /*
+    DrawLineDDA_(ndc0, ndc1, db);
+    DrawLineDDA_(ndc1, ndc2, db);
+    DrawLineDDA_(ndc2, ndc0, db);
+    */
+    
+    DrawLineWu1_(ndc0, ndc1, db);
+    DrawLineWu1_(ndc1, ndc2, db);
+    DrawLineWu1_(ndc2, ndc0, db);
+
+}
+
+static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
+    int c = RGBA_INT(192, 64, 64, 255);
+
+    float depth0 = v0.z;
+    float depth1 = v1.z;
+
+    float dx = v1.x - v0.x;
+    float dy = v1.y - v0.y;
+    float dz = depth1 - depth0;
+
+    float abs_dx = (dx < 0) ? -dx : dx;
+    float abs_dy = (dy < 0) ? -dy : dy;
+
+    int steps = (abs_dx > abs_dy) ? (int)(abs_dx + 0.5f) : (int)(abs_dy + 0.5f);
+    if (steps == 0){
+        int x = (int)(v0.x + 0.5f);
+        int y = (int)(v0.y + 0.5f);
+        if (!DepthBufferTestWrite(db, x, y, depth0)) return;
+        PutPixel(x, y, c);
+        return;
+    }
+
+    float x_inc = dx / steps;
+    float y_inc = dy / steps;
+    float z_inc = dz / steps;
+
+    for (int i = 0; i <= steps; i++){
+        float x_ = v0.x + ((i / (float)steps) * dx);
+        float y_ = v0.y + ((i / (float)steps) * dy);
+
+        int x = (int)(x_ + 0.5f);
+        int y = (int)(y_ + 0.5f);
+        float valInDB = 420.f;
+
+        float d = depth0 + ((i / (float)steps) * dz);
+        /*
+        if (d >= 1.f){
+            printf("pause\n");
+            getchar();
+        }
+        */
+        int depthTest = DepthBufferTestWriteDebug(db, x, y, d, &valInDB);
+        /*
+        if (!DepthBufferTestWriteDebug(db, x, y, depth0, &valInDB)){
+            printf("depth0: %.8f, depth in buffer: %.8f, z_inc: %.8f\n", depth0, valInDB, z_inc);
+            continue;
+        }
+        */
+        if (!depthTest){
+            /*
+            printf("failed, x: %d, y: %d, depth: %.8f, buffer: %.8f\n", x, y, depth0, valInDB);
+            */
+            continue;
+        } else {
+            /*
+            printf("passed, x: %d, y: %d, depth: %.8f, buffer: %.8f\n", x, y, depth0, valInDB);
+            */
+        }
+        /*
+        unsigned char a = (unsigned char)(((float)i / steps) * 255);
+        int newc = RGBA_INT(192, 128, 128, a);
+        BlendPixel_(x, y, newc);
+        */
+        PutPixel(x, y, c);
+ 
+        /*
+        v0.x += x_inc;
+        v0.y += y_inc;
+        */
+        /*
+        depth0 += z_inc;
+        */
+    }
+}
+
+static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db){
+    unsigned char r = 192;
+    unsigned char g = 128;
+    unsigned char b = 128;
+    float dx = v1.x - v0.x;
+    float dy = v1.y - v0.y;
+    float absdx = dx < 0.f ? -dx : dx;
+    float absdy = dy < 0.f ? -dy : dy;
+    if (absdy < absdx){
+        if (v1.x < v0.x){
+            float t = v0.x;
+            v0.x = v1.x;
+            v1.x = t;
+            t = v0.y;
+            v0.y = v1.y;
+            v1.y = t;
+            dx *= -1;
+            dy *= -1;
+        }
+        float m = dy / dx;
+        float fatx = v0.x + 0.5f;
+        int ifatx = (int)fatx;
+        float overlap = 1.f - (fatx - ifatx);
+        float dist = v0.y - (int)v0.y;
+        unsigned char a0 = (unsigned char)(((1.f - dist) * overlap) * 255);
+        unsigned char a1 = (unsigned char)((dist * overlap) * 255);
+        int iy = (int)v0.y;
+        BlendPixel_(ifatx, iy, RGBA_INT(r, g, b, a0)); 
+        BlendPixel_(ifatx, iy + 1, RGBA_INT(r, g, b, a1));
+
+        fatx = v1.x + 0.5f;
+        ifatx = (int)fatx;
+        overlap = fatx - ifatx;
+        iy = (int)v1.y;
+        dist = v1.y - iy;
+        a0 = (unsigned char)(((1.f - dist) * overlap) * 255);
+        a1 = (unsigned char)((dist * overlap) * 255);
+        BlendPixel_(ifatx, iy, RGBA_INT(r, g, b, a0));
+        BlendPixel_(ifatx, iy + 1, RGBA_INT(r, g, b, a1));
+        /*
+        for (int i = 1; i < (int)roundf(dx + 0.5f); i++){
+            float y = v0.y + i * m;
+            int ix = (int)(v0.x + i);
+            int iy = (int)y;
+            float dist = y - iy;
+            a0 = (unsigned char)((1.f - dist) * 255);
+            a1 = (unsigned char)(dist * 255);
+            BlendPixel_(ix, iy, RGBA_INT(r, g, b, a0));
+            BlendPixel_(ix, iy + 1, RGBA_INT(r, g, b, a1));
+        }
+        */
+        int x0 = (int)(v0.x + 0.5f);
+        int x1 = (int)(v1.x + 0.5f);
+        for (int x = x0; x <= x1; x++){
+            float y = v0.y + m * (x - v0.x);
+            int yFloor = (int)floor(y);
+            float fraction = y - yFloor;
+            a0 = (unsigned char)((1.f - fraction) * 255);
+            a1 = (unsigned char)(fraction * 255);
+            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, a0));
+            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, a1));
+            /*
+            printf("x: %d, y0: %d, y1: %d, %.3f, a0: %d, a1: %d\n", x, yFloor,
+                    yFloor + 1, y, a0, a1);
+                    */
+        }
+    } else {
+        if (v1.y < v0.y){
+            float t = v0.x;
+            v0.x = v1.x;
+            v1.x = t;
+            t = v0.y;
+            v0.y = v1.y;
+            v1.y = t;
+            dx *= -1;
+            dy *= -1;
+        }
+        float dx = v1.x - v0.x;
+        float m = dx / dy; 
+        float faty = v0.y + 0.5f;
+        int ifaty = (int)faty;
+        int iy = (int)v0.y;
+        float overlap = 1.f - (faty - ifaty);
+        float dist = v0.y - iy;
+        unsigned char a0 = (unsigned char)(((1.f - dist) * overlap) * 255);
+        unsigned char a1 = (unsigned char)((dist * overlap) * 255);
+        float fatx = v0.x + 0.5f;
+        int ifatx = (int)fatx;
+        BlendPixel_(ifatx, iy, RGBA_INT(r, g, b, a0));
+        BlendPixel_(ifatx, iy, RGBA_INT(r, g, b, a1));
+
+        faty = v1.y + 0.5f;
+        ifaty = (int)faty;
+        overlap = faty - ifaty;
+        iy = (int)v1.y;
+        dist = v1.y - iy;
+        fatx = v1.x + 0.5f;
+        a0 = (unsigned char)(((1.f - dist) * overlap) * 255);
+        a1 = (unsigned char)((dist * overlap) * 255);
+        BlendPixel_(ifatx, iy, RGBA_INT(r, g, b, a0));
+        BlendPixel_(ifatx, iy + 1, RGBA_INT(r, g, b, a1));
+
+        /*
+        for (int i = 1; i < (int)roundf(dy + 0.5f); i++){
+            float x = v0.x + i * m;
+            int ix = (int)x;
+            int iy = (int)(v0.y + i);
+            float dist = x - ix;
+            a0 = (unsigned char)((1.f - dist) * 255);
+            a1 = (unsigned char)(dist * 255);
+            BlendPixel_(ix, iy, RGBA_INT(r, g, b, a0));
+            BlendPixel_(ix + 1, iy, RGBA_INT(r, g, b, a1));
+        }
+        */
+        int y0 = (int)(v0.y + 0.5f);
+        int y1 = (int)(v1.y + 0.5f);
+        for(int y = y0; y <= y1; y++){
+            float x = v0.x + m * (y - v0.y);
+            int xFloor = (int)floor(x);
+            float fraction = x - xFloor;
+            a0 = (unsigned char)((1.f - fraction) * 255);
+            a1 = (unsigned char)(fraction * 255);
+            BlendPixel_(xFloor, y, RGBA_INT(r, g, b, a0));
+            BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, a1));
+            /*
+            printf("x0: %d, x1: %d, y: %d, a0: %d, a1: %d\n", xFloor, xFloor + 1,
+                   y, a0, a1);
+                   */
+        }
+    }
+}
+
+static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db) {
+    unsigned char r = 192;
+    unsigned char g = 128;
+    unsigned char b = 128;
+    
+    float dx = v1.x - v0.x;
+    float dy = v1.y - v0.y;
+    float absdx = fabsf(dx);
+    float absdy = fabsf(dy);
+    
+    // Determine if line is more horizontal or vertical
+    if (absdx > absdy) {
+        // Line is more horizontal than vertical
+        
+        // Ensure we go from left to right
+        if (v0.x > v1.x) {
+            // Swap endpoints
+            Vec3 temp = v0;
+            v0 = v1;
+            v1 = temp;
+        }
+        
+        float gradient = dy / dx;
+        
+        // Handle first endpoint
+        int x0 = (int)roundf(v0.x);
+        int x1 = (int)roundf(v1.x);
+        float y = v0.y + gradient * (x0 - v0.x);
+        
+        // Draw pixels from x0 to x1
+        for (int x = x0; x <= x1; x++) {
+            int yFloor = (int)floorf(y);
+            float fraction = y - yFloor;
+            
+            // Anti-aliased pixels
+            unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
+            unsigned char a1 = (unsigned char)(fraction * 255);
+            
+            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, a0));
+            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, a1));
+            
+            y += gradient;
+        }
+    } else {
+        // Line is more vertical than horizontal
+        
+        // Ensure we go from bottom to top
+        if (v0.y > v1.y) {
+            // Swap endpoints
+            Vec3 temp = v0;
+            v0 = v1;
+            v1 = temp;
+        }
+        
+        float gradient = dx / dy;
+        
+        // Handle first endpoint
+        int y0 = (int)roundf(v0.y);
+        int y1 = (int)roundf(v1.y);
+        float x = v0.x + gradient * (y0 - v0.y);
+        
+        // Draw pixels from y0 to y1
+        for (int y = y0; y <= y1; y++) {
+            int xFloor = (int)floorf(x);
+            float fraction = x - xFloor;
+            
+            // Anti-aliased pixels
+            unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
+            unsigned char a1 = (unsigned char)(fraction * 255);
+            
+            BlendPixel_(xFloor, y, RGBA_INT(r, g, b, a0));
+            BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, a1));
+            
+            x += gradient;
+        }
+    }
+}
+
+static inline int PointInsidePlane_(Vec4 point, int plane){
+    assert(plane >= 0 && plane < 6);
+    switch (plane) {
+    case 0: return point.x > -point.w; /* left     */
+    case 1: return point.x <  point.w; /* right    */
+    case 2: return point.y > -point.w; /* bottom   */
+    case 3: return point.y <  point.w; /* top      */
+    case 4: return point.z > -point.w; /* near     */
+    case 5: return point.z <  point.w; /* far      */
+    }
+}
+
+static inline Vec4 LinePlaneIntersect_(Vec4 a, Vec4 b, int plane){
+    assert(plane >= 0 && plane < 6);
+    float t, denom;
+    switch(plane) {
+        case 0: /* left */ {
+            if (fabsf(denom = (b.x - a.x) + (b.w - a.w)) < 1e-6f) return a;
+            t = (-a.w - a.x) / denom;
+        } break;
+        case 1: /* right */ {
+            if (fabsf(denom = (b.x - a.x) - (b.w - a.w)) < 1e-6f) return a;
+            t = (a.w - a.x) / denom;
+        } break;
+        case 2: /* bottom */ {
+            if (fabsf(denom = (b.y - a.y) + (b.w - a.w)) < 1e-6f) return a;
+            t = (-a.w - a.y) / denom;
+        } break;
+        case 3: /* top */ {
+            if (fabsf(denom = (b.y - a.y) - (b.w - a.w)) < 1e-6f) return a;
+            t = (a.w - a.y) / denom;
+        } break;  
+        case 4: /* near */ {
+            if (fabsf(denom = (b.z - a.z) + (b.w - a.w)) < 1e-6f) return a;
+            t = (-a.w - a.z) / denom;
+        } break;
+        case 5: /* far */ {
+            if (fabsf(denom = (b.z - a.z) - (b.w - a.w)) < 1e-6f) return a;
+            t = (a.w - a.z) / denom;
+        } break;
+    }
+    return Vec4Lerp(a, b, t);
+}
+
+static inline NGon TriPlaneClip_(NGon input, int plane){
+    NGon output;
+    output.vertCount = 0;
+
+    if (input.vertCount == 0) return output;
+
+    Vec4 prev_vert = input.verts[input.vertCount - 1];
+    int prev_inside = PointInsidePlane_(prev_vert, plane);
+
+    for (int i = 0; i < input.vertCount; i++){
+        if (output.vertCount >= 7){
+            /* TODO: logging */
+            break;
+        }
+
+        Vec4 curr_vert = input.verts[i];
+        int curr_inside = PointInsidePlane_(curr_vert, plane);
+
+        if (curr_inside) {
+            if (!prev_inside && output.vertCount < 7){
+                output.verts[output.vertCount++] =
+                    LinePlaneIntersect_(prev_vert, curr_vert, plane);
+            }
+            if (output.vertCount < 8)
+                output.verts[output.vertCount++] = curr_vert;
+        } else if (prev_inside && output.vertCount < 8) {
+            output.verts[output.vertCount++] =
+                LinePlaneIntersect_(prev_vert, curr_vert, plane);
+        }
+        prev_vert = curr_vert;
+        prev_inside = curr_inside;
+    }
+    return output;
+}
+
+static inline NGon TriClip_(Vec4 v0, Vec4 v1, Vec4 v2){
+    NGon ngon;
+    ngon.verts[0] = v0;
+    ngon.verts[1] = v1;
+    ngon.verts[2] = v2;
+    ngon.vertCount = 3;
+
+    for (int plane = 0; plane < 6; plane++){
+        ngon = TriPlaneClip_(ngon, plane);
+
+        if (ngon.vertCount == 0) break;
+    }
+    return ngon;
+}
+
+static inline TriCluster Triangulate_(NGon ngon){
+    TriCluster result;
+    result.count = 0;
+
+    if (ngon.vertCount < 3) return result;
+
+    if (ngon.vertCount == 3) {
+        result.tris[0].v0 = ngon.verts[0];
+        result.tris[0].v1 = ngon.verts[1];
+        result.tris[0].v2 = ngon.verts[2];
+        result.count = 1;
+        return result;
+    }
+
+    Vec4 pivot = ngon.verts[0];
+    for (int i = 1; i < ngon.vertCount - 1; i++){
+        result.tris[result.count].v0 = pivot;
+        result.tris[result.count].v1 = ngon.verts[i];
+        result.tris[result.count].v2 = ngon.verts[i + 1];
+        result.count++;
     }
     return result;
 }

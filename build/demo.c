@@ -16,9 +16,11 @@
 static Model model;
 static Model groundModel;
 static Model rscHouseModel;
+static Model cubeModel;
 static Obj3D carp;
 static Obj3D ground;
 static Obj3D rscHouse;
+static Obj3D cube;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
@@ -78,6 +80,8 @@ void Init(){
     groundModel.tex = LoadBimg("textures/dirt.bimg");
     rscHouseModel.mesh = loadOBJ("models/rsc house.obj");
     rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
+    cubeModel.mesh = loadOBJ("models/cube.obj");
+    cubeModel.tex = 0;
     carp.model = &model;
     carp.scale = Vec3Make(15.f, 15.f, 15.f);
     carp.rot = Vec3Make(0.f, 0.f, 0.f);
@@ -90,6 +94,10 @@ void Init(){
     rscHouse.scale = Vec3Make(1.f, 1.f, 1.f);
     rscHouse.rot = Vec3Make(0.f, 0.f, 0.f);
     rscHouse.pos = Vec3Make(3.f, 0.f, -10.f);
+    cube.model = &cubeModel;
+    cube.scale = Vec3Make(1.f, 1.f, 1.f);
+    cube.rot = Vec3Make(0.f, 0.f, 3.f);
+    cube.pos = Vec3Make(0.f, 0.f, -5.f);
     carp.id = 12;
     ground .id = 11;
     ShadowMapperUpdate(&shadowMapper);
@@ -103,6 +111,13 @@ void Init(){
 }
 
 void Render(){
+    /*
+    static int once = 0;
+    if (once) {
+        printf("paused\n");
+        getchar();
+    }
+    */
     /* clear to grey */
     ClearScreen(255);
     DepthBufferClear(&depthbuf, 1.f);
@@ -110,26 +125,38 @@ void Render(){
     ShadowMapperClear(&shadowMapper, 1.f);
 
     /* some spinning */
-    carp.rot.x += 0.5f * timer.dt;
-    carp.rot.y += -0.3f * timer.dt;
+    carp.rot.x += 0.1f * timer.dt;
+    carp.rot.y += -0.2f * timer.dt;
     carp.rot.z += 0.1f * timer.dt;
+    /*
+    cube.rot.x += 0.1f * timer.dt;
+    cube.rot.y += -0.1f * timer.dt;
+    cube.rot.z += 0.1f * timer.dt;
+    */
 
-    ShadowMapperRender(&shadowMapper, &carp);
+
+    ShadowMapperRender(&shadowMapper, &cube);
     /*
     DrawObj3DLambert(&cam, &carp, &renderer.framebuffer, &light[0], 2, 
             &depthbuf);
             */
-    DrawObj3DLambertShadowFloat(&cam, &carp, &renderer.framebuffer, &light[0], 2,
-            &depthbuf, &shadowMapper);
-    DrawObj3DLambertShadow(&cam, &ground, &renderer.framebuffer, &light[0], 2,
-            &depthbuf, &shadowMapper);
-    DrawObj3DLambertShadowFloat(&cam, &rscHouse, &renderer.framebuffer,
+    /*
+    DrawObj3DLambertShadowFloatClip(&cam, &carp, &renderer.framebuffer,
             &light[0], 2, &depthbuf, &shadowMapper);
+    DrawObj3DLambertShadowFloatClip(&cam, &ground, &renderer.framebuffer,
+            &light[0], 2, &depthbuf, &shadowMapper);
+    DrawObj3DLambertShadowFloatClip(&cam, &rscHouse, &renderer.framebuffer,
+            &light[0], 2, &depthbuf, &shadowMapper);
+            */
+    Obj3DDrawWireframe(&cam, &cube, &renderer.framebuffer, &depthbuf);
     /*
     VisualizeBuffer(shadowMapper.buf, shadowMapper.w, shadowMapper.h,
             "float");
     */
+    /*
     PutPixel(debugX, debugY, RGBA_INT(255, 0, 255, 255));
+    once = 1;
+    */
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -161,6 +188,7 @@ void Update(){
     UpdateObj3DModelMatrix(&carp);
     UpdateObj3DModelMatrix(&ground);
     UpdateObj3DModelMatrix(&rscHouse);
+    UpdateObj3DModelMatrix(&cube);
 
     Event evt;
     while (EventQueueNotEmpty(eventQueue)){
@@ -219,6 +247,26 @@ void Update(){
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_TRANS_L_Z_PLUS)){
         CameraTransLocalZPlus(&cam);
     }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_Y_MINUS)){
+        CameraRotLocalYMinus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_Y_PLUS)){
+        CameraRotLocalYPlus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_X_MINUS)){
+        CameraRotLocalXMinus(&cam);
+    }
+    if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_X_PLUS)){
+        /*
+        CameraPrint(&cam);
+        */
+        CameraRotLocalXPlus(&cam);
+    }
+    /*
+    if (InputIsActionJustPressed(&inputSystem, ACTION_CAM_ROT_SNAP_L_Y_MINUS)){
+        CameraRotSnapLocalYMinus(&cam, 30.f);
+    }
+    */
     float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dx != 0.f){
         /*
@@ -230,6 +278,17 @@ void Update(){
     if (dy != 0.f){
         CameraRotLocalYFloat(&cam, dy);
     }
+    float oldX = cam.pos.x;
+    float oldY = cam.pos.y;
+    float oldZ = cam.pos.z;
     UpdateCamera(&cam);
+    /*
+    if (fabsf(oldX - cam.pos.x) > 1e-4) printf("moved in x axis\n");
+    if (fabsf(oldY - cam.pos.y) > 1e-4) printf("moved in y axis\n");
+    if (fabsf(oldZ - cam.pos.z) > 1e-4) printf("moved in z axis\n");
+    */
+    /*
+    printf("cam.right: %f, %f, %f\n", cam.right.x, cam.right.y, cam.right.z);
+    */
     ShadowMapperUpdate(&shadowMapper);
 }

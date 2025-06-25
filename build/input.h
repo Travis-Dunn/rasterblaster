@@ -34,6 +34,7 @@ typedef enum {
     ACTION_CAM_ROT_L_Z_PLUS,
     ACTION_CAM_ROT_L_X,
     ACTION_CAM_ROT_L_Y,
+    ACTION_CAM_ROT_SNAP_L_Y_MINUS,
     ACTION_COUNT
 } InputAction;
 
