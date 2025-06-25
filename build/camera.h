@@ -13,14 +13,15 @@ typedef struct {
     Vec3 pos;
     Vec3 right, up, forward;    /* local reference frame */
     Quat rot;                   /* Radians */
-    Vec3 dPosGlobal, dPosLocal;
-    Vec3 dRotGlobal, dRotLocal; /* Euler degrees */
+    Vec3 dPosGlobal, dPosLocal; /* euler degrees */
+    Vec3 dRotGlobal, dRotLocal;
     float dFov;                 /* degrees */
     int viewDirty, projDirty;
     Mat4 view, proj;
 /*********************    Derived, read only parameters    ********************/
-    float pitch, yaw, roll;     /* Degrees */
-    float fovDegrees;
+    float pitch, yaw, roll;     /* Degrees, should be set in the update function
+                                but not yet implemented */
+    float fovDegrees;           
 /***************************    Tuning parameters    **************************/
     float sensitivity;          /* Unitless scalar */
     float translateFactor;      /* Unitless scalar */
@@ -30,8 +31,8 @@ typedef struct {
     float* dt;                  /* delta time seconds */
     Vec3 inverseDir;
     /* world space view frustum verts: ntl, ntr, nbl, nbr, ftl, ftr, fbl, fbr */
-    Vec3 frustum[8]; 
-    Frustum viewFrustum;
+    Vec3 frustum[8]; /* this is in use, for shadow mapping, not culling */
+    Frustum viewFrustum; /* not in use, candidate for removal */
 } Camera;
 
 /* all other aspects of the camera such as fov limits are set to default values
@@ -65,8 +66,8 @@ void CameraRotLocalXFloat(Camera* cam, float dx);
 void CameraRotLocalYFloat(Camera* cam, float dy);
 void UpdateCamera(Camera* cam);
 void UpdateFrustum(Camera* cam); /* for the array of Vec3 for shadow mapping */
-void UpdateViewFrustum(Camera* cam); /* for the struct of planes for clipping */
+void UpdateViewFrustum(Camera* cam); /* not used, candidate for removal */
 void CameraPrint(Camera* cam);
-void CameraRotSnapLocalYMinus(Camera* cam, float deg);
+void CameraRotSnapLocalY(Camera* cam, float deg);
 
 #endif /* CAMERA_H */

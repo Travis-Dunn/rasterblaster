@@ -1,5 +1,5 @@
 #include "stdio.h"
-#include "math.h" /* sinf, cosf, tanf, sqrtf */
+#include "math.h"
 #include "arithmetic.h"
 
 Vec4 MatVertMul(Mat4* mat, Vec4 vert){
@@ -204,7 +204,6 @@ Vec3 Vec3Norm(Vec3 v){
     return Vec3Norm_(v);
 }
 
-
 static inline Vec4 Vec4Make_(float x, float y, float z, float w){
     Vec4 v; v.x = x; v.y = y; v.z = z; v.w = w; return v;
 }
@@ -229,7 +228,6 @@ static inline Quat QuatMake_(float w, float x, float y, float z){
 Quat QuatMake(float w, float x, float y, float z){
     return QuatMake_(w, x, y, z);
 }
-
 
 Quat QuatFromAxisAngle(Vec3 axis, float rads){
     return QuatFromAxisAngle_(axis, rads);
@@ -313,7 +311,7 @@ Mat4 Mat4LookAt(Vec3 eye, Vec3 centre, Vec3 up){
 
 
 void Mat4Printf(Mat4* m, char* label){
-    if (label) printf("%s\n", label);
+    if (label) printf("%s:\n", label);
     for (int r = 0; r < 4; r++)
         printf("| %8.5f %8.5f %8.5f %8.5f |\n",
                 m->m[r][0], m->m[r][1], m->m[r][2], m->m[r][3]);

@@ -262,11 +262,6 @@ void Update(){
         */
         CameraRotLocalXPlus(&cam);
     }
-    /*
-    if (InputIsActionJustPressed(&inputSystem, ACTION_CAM_ROT_SNAP_L_Y_MINUS)){
-        CameraRotSnapLocalYMinus(&cam, 30.f);
-    }
-    */
     float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dx != 0.f){
         /*

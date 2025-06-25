@@ -144,9 +144,6 @@ void InputLoadDefaultMappings(InputSystem* input){
         InputAddMapping(input, 'B', 0, ACTION_CAM_ROT_L_Y_PLUS);
         InputAddMapping(input, 'H', 0, ACTION_CAM_ROT_L_X_MINUS);
         InputAddMapping(input, 'N', 0, ACTION_CAM_ROT_L_X_PLUS);
-        /*
-        InputAddMapping(input, 'V', 0, ACTION_CAM_ROT_SNAP_L_Y_MINUS);
-        */
     }
 }
 
