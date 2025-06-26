@@ -85,19 +85,21 @@ typedef struct {
     float actionMouseMoved[ACTION_COUNT];
 } InputSystem;
 
-void InputInit(InputSystem* input);
-void InputUpdate(InputSystem* input, float dt);
-void InputHandleKeyEvent(InputSystem* input, int keyCode, int isPressed);
-void InputHandleMouseEvent(InputSystem* input, float dx, float dy);
-void InputSetMode(InputSystem* input, InputMode mode);
-void InputAddMapping(InputSystem* input, int keyCode, int modifiers,
-        InputAction action);
-void InputAddMouseMapping(InputSystem* input, int axis, InputAction action);
-void InputClearMappings(InputSystem* input);
-void InputLoadDefaultMappings(InputSystem* input);
-int InputIsActionPressed(InputSystem* input, InputAction action);
-int InputIsActionJustPressed(InputSystem* input, InputAction action);
-int InputIsActionJustReleased(InputSystem* input, InputAction action);
-float InputIsActionMouseMoved(InputSystem* input, InputAction action);
+void    InputInit                   (InputSystem* input);
+void    InputUpdate                 (InputSystem* input, float dt);
+void    InputHandleKeyEvent         (InputSystem* input, int keyCode,
+                                     int isPressed);
+void    InputHandleMouseEvent       (InputSystem* input, float dx, float dy);
+void    InputSetMode                (InputSystem* input, InputMode mode);
+void    InputAddMapping             (InputSystem* input, int keyCode,
+                                     int modifiers, InputAction action);
+void    InputAddMouseMapping        (InputSystem* input, int axis,
+                                     InputAction action);
+void    InputClearMappings          (InputSystem* input);
+void    InputLoadDefaultMappings    (InputSystem* input);
+int     InputIsActionPressed        (InputSystem* input, InputAction action);
+int     InputIsActionJustPressed    (InputSystem* input, InputAction action);
+int     InputIsActionJustReleased   (InputSystem* input, InputAction action);
+float   InputIsActionMouseMoved     (InputSystem* input, InputAction action);
 
 #endif /* INPUT_H */

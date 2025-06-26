@@ -18,8 +18,8 @@ typedef struct {
     Vec3 inverseDir;
 } Light;
 
-Light MakeAmbient(unsigned char r, unsigned char g, unsigned char b);
-Light MakeDirectional(unsigned char r, unsigned char g, unsigned char b,
-        Vec3 dir);
+Light   MakeAmbient     (unsigned char r, unsigned char g, unsigned char b);
+Light   MakeDirectional (unsigned char r, unsigned char g, unsigned char b,
+                         Vec3 dir);
 
 #endif /* LIGHT_H */

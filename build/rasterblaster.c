@@ -60,13 +60,6 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
         int mouseX = (int)LOWORD(lParam);
         int mouseY = (int)HIWORD(lParam);
         int ret = GetClicked(mouseX, mouseY);
-        /*
-        if (ret == 12){
-            printf("clicked on the carpfish!\n");
-        } else {
-            printf("clicked elsewhere, more specifically: %d, %d\n", mouseX, mouseY);
-        }
-        */
     } break;
     case WM_KEYDOWN: {
         if (g_EventQueue){
@@ -87,10 +80,12 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
     case WM_INPUT: {
         if (!g_WindowActive) break;
         UINT dwSize;
-        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize,
+                sizeof(RAWINPUTHEADER));
         RAWINPUT* raw = (RAWINPUT*)malloc(dwSize);
         if (!raw) break;
-        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &dwSize, sizeof(RAWINPUTHEADER));
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &dwSize,
+                sizeof(RAWINPUTHEADER));
         if (raw->header.dwType == RIM_TYPEMOUSE){
             int deltaX = raw->data.mouse.lLastX;
             int deltaY = raw->data.mouse.lLastY;
@@ -128,8 +123,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     int windowHeight = windowRect.bottom - windowRect.top;
 
     HWND windowHandle = CreateWindowExA(0, WindowClass.lpszClassName, "RasterBlaster", 
-/*            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
- *            CW_USEDEFAULT, CW_USEDEFAULT,*/
             windowStyle | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, windowWidth,
             windowHeight,
             0, 0, hInstance, 0);
@@ -159,7 +152,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     renderer.framebuffer.buf = bitmapMemory;
     renderer.running = 1;
 
-    Init();
+    Init(); /* demo */
 
     while (running){
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)){
@@ -167,9 +160,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        Update();
-        Render();
-/*        printf("%.1f\n", timer.fpsAvg);*/
+        Update(); /* demo */
+        Render(); /* demo */
+        /*
+        printf("%.1f\n", timer.fpsAvg);
+        */
 
         HDC hdc = GetDC(windowHandle);
         RECT clientRect;
@@ -179,8 +174,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         PaintWindow(hdc, &clientRect, 0, 0, windowWidth, windowHeight);
         ReleaseDC(windowHandle, hdc);
     }
-    printf("Press any key to exit...\n");
-    getchar();
     return 0;
 }
 
@@ -211,6 +204,7 @@ void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h){
             bitmapMemory, &bitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 }
 
+/* candidate for removal */
 void printOffsets(){
     printf("Offset of renderer.running: %lu\n", (unsigned long)&(((Renderer*)0)
                 ->running));

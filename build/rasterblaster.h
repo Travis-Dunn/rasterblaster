@@ -10,6 +10,7 @@
  * communicates between the platform layer and the application layer */
 #include "event.h"
 
+/* Display scaling */
 #define INTERNAL_WIDTH 1000
 #define INTERNAL_HEIGHT 1000
 #define PIXEL_SCALE 1
@@ -22,15 +23,17 @@ LRESULT CALLBACK MainWindowCallback(HWND hWnd, UINT msg, WPARAM wParam,
         LPARAM lParam);
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         LPSTR lpCmdLine, int nCmdShow);
-void ResizeDIBSection(int w, int h);
-void PaintWindow(HDC hdc, RECT* r, int x, int y, int w, int h);
-void printOffsets(); /* debug */
 
-void SetPlatformEventQueue(EventQueue* q);
+void ResizeDIBSection       (int w, int h);
+void PaintWindow            (HDC hdc, RECT* r, int x, int y, int w, int h);
+void printOffsets           (); /* debug */
+/* Call from application to link event queue */
+void SetPlatformEventQueue  (EventQueue* q);
 
-extern int running;
-extern BITMAPINFO bitmapInfo;
-extern void* bitmapMemory;
-extern int bitmapW;
-extern int bitmapH;
+extern int          running;
+extern BITMAPINFO   bitmapInfo;
+extern void*        bitmapMemory;
+extern int          bitmapW;
+extern int          bitmapH;
+
 #endif /* RASTERBLASTER_H */

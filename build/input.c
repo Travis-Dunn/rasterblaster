@@ -21,10 +21,6 @@ void InputUpdate(InputSystem* input, float dt){
         input->actionPressed[i] = 0;
         input->actionMouseMoved[i] = 0.f;
     }
-    /*
-    input->mouseState.dx = 0.f;
-    input->mouseState.dy = 0.f;
-    */
     for (int i = 0; i < input->mappingCount; i++){
         KeyMapping* mapping = &input->mappings[i];
         KeyState* keyState = &input->keys[mapping->keyCode];
@@ -77,10 +73,6 @@ void InputHandleMouseEvent(InputSystem* input, float dx, float dy){
     input->mouseState.dy = floorf(input->mouseState.accumY);
     input->mouseState.accumX -= input->mouseState.dx;
     input->mouseState.accumY -= input->mouseState.dy;
-    /*
-    input->mouseState.dx = dx;
-    input->mouseState.dy = dy;
-    */
 }
 
 void InputSetMode(InputSystem* input, InputMode mode){
@@ -178,6 +170,3 @@ float InputIsActionMouseMoved(InputSystem* input, InputAction action){
     }
     return input->actionMouseMoved[action];   
 }
-
-
-

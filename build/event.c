@@ -58,7 +58,6 @@ int EventDequeue(EventQueue* q, Event* out){
     return 0;
 }
 
-
 int EventQueueNotEmpty(EventQueue* q){
     assert(q);
     return q->head != q->tail;

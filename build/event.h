@@ -1,7 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-typedef enum { /* just one for now, there will be more */
+typedef enum {
     EVT_NONE = 0,
     EVT_LBUTTONDOWN,
     EVT_KEYDOWN,

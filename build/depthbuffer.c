@@ -75,7 +75,8 @@ int DepthBufferTestWrite(DepthBuffer* db, int x, int y, float z){
     } else return 0;
 }
 
-int DepthBufferTestWriteDebug(DepthBuffer* db, int x, int y, float z, float* out){
+int DepthBufferTestWriteDebug(DepthBuffer* db, int x, int y, float z,
+        float* out){
     float* address = db->buf + y * db->w + x;
     if (z < *address){
         *address = z;
