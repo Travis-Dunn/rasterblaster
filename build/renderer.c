@@ -977,6 +977,92 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
     }
 }
 
+void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
+        unsigned char* gammaLUT){
+    assert(cam);
+    assert(obj);
+    assert(fb);
+
+    int triCount = obj->model->mesh->indexCount / 9;
+
+    Mat4 mModelView = MatMatMul(&cam->view, &obj->matModel);
+    
+    for (int i = 0; i < triCount; i++){
+        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
+        /* we are pulling out stuff that we don't need, but that's just because
+         * I don't feel like making a version of GetTriIndices and GetVertex 
+         * that only get the positions, because it would only be used for 
+         * wireframe/debugging */
+        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
+        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6,
+                &i7, &i8);
+
+        /* use indices to get data */ 
+        Vec4 v0, v1, v2, n0, n1, n2;
+        float tu0, tv0, tu1, tv1, tu2, tv2;
+
+        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
+        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
+        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
+        
+        v0 = MatVertMul(&obj->matModel, v0);
+        v1 = MatVertMul(&obj->matModel, v1);
+        v2 = MatVertMul(&obj->matModel, v2);
+        v0 = MatVertMul(&cam->view, v0);
+        v1 = MatVertMul(&cam->view, v1);
+        v2 = MatVertMul(&cam->view, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
+        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
+        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
+        Vec3 side0 = Vec3Sub(v1_, v0_);
+        Vec3 side1 = Vec3Sub(v2_, v0_);
+        Vec3 normal = Vec3Cross(side0, side1);
+
+        /* pretty sure this line is a no-op */
+        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
+        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
+        Vec3 normalizedNormal = Vec3Norm(normal);
+        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (!(nDotLos > -0.001f)) continue;
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+        NGon result = TriClip_(v0, v1, v2);
+        TriCluster cluster = Triangulate_(result);
+
+        for (int j = 0; j < cluster.count; j++){
+            Vec4 v0 = cluster.tris[j].v0;
+            Vec4 v1 = cluster.tris[j].v1;
+            Vec4 v2 = cluster.tris[j].v2;
+    
+            v0.x /= v0.w;
+            v0.y /= v0.w;
+            v0.z /= v0.w;
+            v1.x /= v1.w;
+            v1.y /= v1.w;
+            v1.z /= v1.w;
+            v2.x /= v2.w;
+            v2.y /= v2.w;
+            v2.z /= v2.w;
+
+            Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
+            Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
+            Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
+        
+            DrawWireframeTriGamma_(ndc0, ndc1, ndc2, gammaLUT, fb);
+        }
+    }
+}
+
 static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         DepthBuffer* db, Framebuffer* fb){
     /* ndc -> floating point screen space for x and y */
@@ -992,6 +1078,23 @@ static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
     DrawLineWu1_(ndc0, ndc1, db);
     DrawLineWu1_(ndc1, ndc2, db);
     DrawLineWu1_(ndc2, ndc0, db);
+}
+
+static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
+        unsigned char* gammaLUT, Framebuffer* fb){
+    /* ndc -> floating point screen space for x and y */
+    int w = fb->w;
+    int h = fb->h;
+    ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
+    ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
+    ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
+    ndc1.y = (0.5f - ndc1.y * 0.5f) * h;
+    ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
+    ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
+    
+    DrawLineWu_Gamma(ndc0, ndc1, &gammaLUT[0]);
+    DrawLineWu_Gamma(ndc1, ndc2, &gammaLUT[0]);
+    DrawLineWu_Gamma(ndc2, ndc0, &gammaLUT[0]);
 }
 
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
@@ -1240,6 +1343,90 @@ static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db) {
     }
 }
 
+static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT){
+    unsigned char r = 192;
+    unsigned char g = 128;
+    unsigned char b = 128;
+    
+    float dx = v1.x - v0.x;
+    float dy = v1.y - v0.y;
+    float absdx = fabsf(dx);
+    float absdy = fabsf(dy);
+    
+    // Determine if line is more horizontal or vertical
+    if (absdx > absdy) {
+        // Line is more horizontal than vertical
+        
+        // Ensure we go from left to right
+        if (v0.x > v1.x) {
+            // Swap endpoints
+            Vec3 temp = v0;
+            v0 = v1;
+            v1 = temp;
+        }
+        
+        float gradient = dy / dx;
+        
+        // Handle first endpoint
+        int x0 = (int)roundf(v0.x);
+        int x1 = (int)roundf(v1.x);
+        float y = v0.y + gradient * (x0 - v0.x);
+        
+        // Draw pixels from x0 to x1
+        for (int x = x0; x <= x1; x++) {
+            int yFloor = (int)floorf(y);
+            float fraction = y - yFloor;
+            
+            // Anti-aliased pixels
+            unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
+            unsigned char a1 = (unsigned char)(fraction * 255);
+            
+            /*
+            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, a0));
+            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, a1));
+            */
+            assert(a0 >= 0 && a0 < 256 && a1 >= 0 && a1 < 256);
+            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, gammaLUT[a0]));
+            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, gammaLUT[a1]));
+ 
+            
+            y += gradient;
+        }
+    } else {
+        // Line is more vertical than horizontal
+        
+        // Ensure we go from bottom to top
+        if (v0.y > v1.y) {
+            // Swap endpoints
+            Vec3 temp = v0;
+            v0 = v1;
+            v1 = temp;
+        }
+        
+        float gradient = dx / dy;
+        
+        // Handle first endpoint
+        int y0 = (int)roundf(v0.y);
+        int y1 = (int)roundf(v1.y);
+        float x = v0.x + gradient * (y0 - v0.y);
+        
+        // Draw pixels from y0 to y1
+        for (int y = y0; y <= y1; y++) {
+            int xFloor = (int)floorf(x);
+            float fraction = x - xFloor;
+            
+            // Anti-aliased pixels
+            unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
+            unsigned char a1 = (unsigned char)(fraction * 255);
+            
+            BlendPixel_(xFloor, y, RGBA_INT(r, g, b, a0));
+            BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, a1));
+            
+            x += gradient;
+        }
+    }
+}
+
 static inline int PointInsidePlane_(Vec4 point, int plane){
     assert(plane >= 0 && plane < 6);
     switch (plane) {
@@ -1356,4 +1543,12 @@ static inline TriCluster Triangulate_(NGon ngon){
         result.count++;
     }
     return result;
+}
+
+/* Assumes that the table is large enough! If it's not, corrupt stack */
+void GammaLUTInit(unsigned char* lut){
+    for (int i = 0; i < 256; i++){
+        float val = powf((i / 255.f), 1.f / 2.2f);
+        lut[i] = (unsigned char)(val * 255.f);
+    }
 }

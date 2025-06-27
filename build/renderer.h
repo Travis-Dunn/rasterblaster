@@ -57,6 +57,7 @@ static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db);
+static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT);
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
@@ -79,6 +80,10 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
         , ShadowMapper* sm, Vec4 sh0, Vec4 sh1, Vec4 sh2);
 static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         DepthBuffer* db, Framebuffer* fb);
+static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
+        unsigned char* gammaLUT, Framebuffer* fb);
+
+
 
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db);
@@ -88,6 +93,13 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
         DepthBuffer* db);
+void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
+        unsigned char* gammaLUT);
+
+
+
+/* 8 bit gamma correction LUT */
+void                        GammaLUTInit(unsigned char* lut);
 
 /* Frustum clipping */
 static inline int           PointInsidePlane_   (Vec4 point, int plane);

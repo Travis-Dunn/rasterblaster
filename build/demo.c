@@ -17,16 +17,19 @@ static Model model;
 static Model groundModel;
 static Model rscHouseModel;
 static Model cubeModel;
+static Model sphereModel;
 static Obj3D carp;
 static Obj3D ground;
 static Obj3D rscHouse;
 static Obj3D cube;
+static Obj3D sphere;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
 static ShadowMapper shadowMapper;
 static EventQueue* eventQueue;
 static InputSystem inputSystem;
+static unsigned char gammaLUT[256];
 
 static int debugX, debugY;
 static int frameCount;
@@ -58,6 +61,8 @@ void Init(){
     groundModel.tex = LoadBimg("textures/dirt.bimg");
     rscHouseModel.mesh = loadOBJ("models/rsc house.obj");
     rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
+    sphereModel.mesh = loadOBJ("models/sphere.obj");
+    sphereModel.tex = 0;
     cubeModel.mesh = loadOBJ("models/cube.obj");
     cubeModel.tex = 0;
     carp.model = &model;
@@ -76,16 +81,21 @@ void Init(){
     cube.scale = Vec3Make(1.f, 1.f, 1.f);
     cube.rot = Vec3Make(0.f, 0.f, 3.f);
     cube.pos = Vec3Make(0.f, 0.f, -5.f);
+    sphere.model = &sphereModel;
+    sphere.scale = Vec3Make(1.f, 1.f, 1.f);
+    sphere.rot = Vec3Make(0.f, 0.f, 0.f);
+    sphere.pos = Vec3Make(0.f, 0.f, 0.f);
     carp.id = 12;
-    ground .id = 11;
+    ground.id = 11;
     ShadowMapperUpdate(&shadowMapper);
     UpdateCamera(&cam);
+    GammaLUTInit(&gammaLUT[0]);
     debugX, debugY = 0;
     frameCount = 0;
 }
 
 void Render(){
-    ClearScreen(255);
+    ClearScreen(96);
     DepthBufferClear(&depthbuf, 1.f);
     ClearPickbuf();
     ShadowMapperClear(&shadowMapper, 1.f);
@@ -101,7 +111,8 @@ void Render(){
     */
 
     ShadowMapperRender(&shadowMapper, &cube);
-    Obj3DDrawWireframe(&cam, &cube, &renderer.framebuffer, &depthbuf);
+    Obj3DDrawWireframeGamma(&cam, &cube, &renderer.framebuffer, &gammaLUT[0]);
+    Obj3DDrawWireframeGamma(&cam, &sphere, &renderer.framebuffer, &gammaLUT[0]);
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -128,6 +139,7 @@ void Update(){
     UpdateObj3DModelMatrix(&ground);
     UpdateObj3DModelMatrix(&rscHouse);
     UpdateObj3DModelMatrix(&cube);
+    UpdateObj3DModelMatrix(&sphere);
 
     Event evt;
     while (EventQueueNotEmpty(eventQueue)){
