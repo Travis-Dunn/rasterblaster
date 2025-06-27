@@ -21,7 +21,7 @@ typedef struct {
 
 void               ShadowMapperUpdate   (ShadowMapper* sm);
 int                ShadowMapperInit     (ShadowMapper* sm, int w, int h,
-        float bias, Camera* cam, Vec3 lightDir);
+    float bias, Camera* cam, Vec3 lightDir);
 int                ShadowMapperFree     (ShadowMapper* sm);
 void               ShadowMapperClear    (ShadowMapper* sm, float val);
 void               ShadowMapperRender   (ShadowMapper* sm, Obj3D* obj);

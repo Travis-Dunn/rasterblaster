@@ -1,7 +1,7 @@
 #include "math.h"
-#include "texture.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "texture.h"
 
 Texture* LoadBimg(char* filename){
     FILE* f = fopen(filename, "rb");
@@ -40,10 +40,6 @@ static inline int WrapRepeatI_(int i, int n){
 int SampleTex(Texture* t, float u, float v){
     u = u - floorf(u);
     v = 1.f - (v - floorf(v));
-    /*
-    int x = (int)(u * t->w) & (t->w - 1);
-    int y = (int)(v * t->h) & (t->h - 1);
-    */
     int x = (int)(u * t->w);
     int y = (int)(v * t->h);
     x = WrapRepeatI_(x, t->w);

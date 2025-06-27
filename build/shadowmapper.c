@@ -77,7 +77,6 @@ int ShadowMapperFree(ShadowMapper* sm){
     sm->lightDir = Vec3Make(0.f, 0.f, 0.f);
     DepthBufferFree(&sm->db);
     return 0;
-
 }
 
 void ShadowMapperClear(ShadowMapper* sm, float val){
@@ -92,8 +91,6 @@ void ShadowMapperClear(ShadowMapper* sm, float val){
     DepthBufferClear(&sm->db, 1.0f);
 }
 
-
-
 /* light dir must not be parallel to global up */
 void ShadowMapperUpdate(ShadowMapper* sm){
     Vec3 centre = Vec3Make(0.f, 0.f, 0.f);
@@ -104,18 +101,12 @@ void ShadowMapperUpdate(ShadowMapper* sm){
     Vec3 eye = Vec3Sub(centre, sm->lightDir);
     Mat4 matLightView = Mat4LookAt(eye, centre, sm->cam->gUp);
 
-    /*
-    Mat4Printf(&matLightView, "matLightView");
-    */
     Vec3 ls[8]; /* view frustum in light space */
     for (int i = 0; i < 8; i++){
         Vec4 p = Vec4Make(sm->cam->frustum[i].x, sm->cam->frustum[i].y,
                 sm->cam->frustum[i].z, 1.f);
         Vec4 q = MatVertMul(&matLightView, p);
         ls[i] = Vec3Make(q.x, q.y, q.z);
-        /*
-        printf("ls[%d].x: %8.5f ls[%d].y: %8.5f ls[%d].z: %8.5f\n", i, q.x, i, q.y, i, q.z);
-        */
     }
     float minX, maxX, minY, maxY, minZ, maxZ;
     minX = minY = minZ = FLT_MAX;
@@ -128,31 +119,15 @@ void ShadowMapperUpdate(ShadowMapper* sm){
     Mat4 matLightProj = MatIdentity();
     float nearZ = minZ - sm->bias;
     float farZ = maxZ + sm->bias;
-    /*
-    printf("minX: %8.5f\n", minX);
-    printf("maxX: %8.5f\n", maxX);
-    printf("minY: %8.5f\n", minY);
-    printf("maxY: %8.5f\n", maxY);
-    printf("nearZ: %8.5f\n", nearZ);
-    printf("farZ: %8.5f\n", farZ);
-    */
     matLightProj.m[0][0] = 2.f / (maxX - minX);
     matLightProj.m[1][1] = 2.f / (maxY - minY);
     matLightProj.m[2][2] = -2.f / (farZ - nearZ);
     matLightProj.m[0][3] = -(maxX + minX) / (maxX - minX);
     matLightProj.m[1][3] = -(maxY + minY) / (maxY - minY);
     matLightProj.m[2][3] = -(farZ + nearZ) / (farZ - nearZ);
-    /*
-    Mat4Printf(&matLightProj, "matLightProj");
-    Mat4Printf(&matLightView, "matLightView");
-    */
-    /* For right now, we're separating these
-    sm->matTransform = MatMatMul(&matLightProj, &matLightView);
-    */
     sm->matTransform = matLightView;
     sm->matTransformProj = matLightProj;
 }
-
 
 void ShadowMapperRender(ShadowMapper* sm, Obj3D* obj){
     Mat4 mvp = MatMatMul(&sm->matTransform, &obj->matModel);
@@ -183,9 +158,6 @@ void ShadowMapperRender(ShadowMapper* sm, Obj3D* obj){
 
         /* clip -> NDC (clipping not yet implemented) */
 
-        /*
-        printf("v0.x: %.3f\n", v0.x);
-        */
         v0.x /= v0.w;
         v0.y /= v0.w;
         v0.z /= v0.w;
@@ -208,13 +180,6 @@ void ShadowMapperRender(ShadowMapper* sm, Obj3D* obj){
         sz0 = v0.z * 0.5f + 0.5f;
         sz1 = v1.z * 0.5f + 0.5f;
         sz2 = v2.z * 0.5f + 0.5f;
-        /*
-        printf("ndc x0: %.3f\n", v0.x);
-
-        printf("ndc x1: %.3f\n", v1.x);
-
-        printf("ndc x2: %.3f\n", v2.x);
-        */
         RasterizeTri_(sm, sx0, sy0, sz0, sx1, sy1, sz1, sx2, sy2, sz2);
     }
 }
@@ -234,13 +199,10 @@ static inline void RasterizeTri_(ShadowMapper* sm, int x0, int y0,
 
     /* 2. Pre‑compute denominator and edge deltas */
     float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
-    /*
-    printf("degenerate\n");
-    */
     if (denom == 0.0f) return;          /* Degenerate triangle */
 
     /* accumulate contribution from ambient lights */
-   float invDen = 1.0f / denom;
+    float invDen = 1.0f / denom;
 
     for (int y = minY; y <= maxY; ++y)
     {
@@ -251,30 +213,18 @@ static inline void RasterizeTri_(ShadowMapper* sm, int x0, int y0,
             float l1 = ((y2 - y0) * (x - x2) + (x0 - x2) * (y - y2)) * invDen;
             float l2 = 1.0f - l0 - l1;
 
-            /* Inside test (all weights in [0,1]) */
-            /*
-            printf("inside test\n");
-            */
             if (l0 < 0.0f || l1 < 0.0f || l2 < 0.0f) continue;
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            /*
-            printf("about to perform depth test\n");
-            */
             if (!DepthBufferTestWrite(&sm->db, x, y, depth)) continue;
             
             /* 5. write to shadow map */
             float* texel = (float*)sm->buf + (y * sm->w + x);
             *texel = depth;
-            /*
-            printf("wrote to shadow buffer\n");
-            */
         }
     }
 }
-
-
 
 #undef FLT_MAX
 #undef MAX_W

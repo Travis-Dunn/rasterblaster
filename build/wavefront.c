@@ -146,15 +146,6 @@ cleanup:
     if (mesh) free(mesh);
     return NULL;
 }
-/*
-void freeMesh(Mesh* mesh) {
-    if (mesh) {
-        if (mesh->vertices) free(mesh->vertices);
-        if (mesh->indices) free(mesh->indices);
-        free(mesh);
-    }
-}
-*/
 
 void GetTriIndices(Mesh* m, int triIdx, int* p0, int* p1, int* p2,
                                         int* t0, int* t1, int* t2,

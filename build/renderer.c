@@ -1,8 +1,8 @@
 #include "math.h"
 #include "stdlib.h"
 #include "string.h"
-#include "renderer.h"
 #include "stdio.h"
+#include "renderer.h"
 #include "mouse.h"
 
 Framebuffer framebuffer = {0};
@@ -592,9 +592,6 @@ static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
     /* 2. Pre‑compute denominator and edge deltas */
     float denom = (float)((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
     if (denom == 0.0f){
-        /*
-        printf("degen, coords: (%d, %d), (%d, %d), (%d, %d)\n", x0, y0, x1, y1, x2, y2);
-        */
         return;
     }
 
@@ -631,9 +628,6 @@ static inline void TexturedLambertShadowTri_(Texture* t, Vec3 la, int id,
             int ty = (int)(sy * (sm->h - 1) + 0.5f);
             
             int lit = 0;
-            if (tx < 0 || ty < 0 || tx >= sm->w || ty >= sm->h){
-                printf("Tried to sample outside of shadow map bounds\n");
-            }
             float sample = sm->buf[ty * sm->w + tx];
             lit = sz - 0.004f <= sample;
 
@@ -678,12 +672,6 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
 
 
     /* 1. Bounding‑box, clamped to framebuffer */
-    /*
-    int minX = (ix0 < ix1 ? (ix0 < ix2 ? ix0 : ix2) : (ix1 < ix2 ? ix1 : ix2));
-    int minY = (iy0 < iy1 ? (iy0 < iy2 ? iy0 : iy2) : (iy1 < iy2 ? iy1 : iy2));
-    int maxX = (ix0 > ix1 ? (ix0 > ix2 ? ix0 : ix2) : (ix1 > ix2 ? ix1 : ix2));
-    int maxY = (iy0 > iy1 ? (iy0 > iy2 ? iy0 : iy2) : (iy1 > iy2 ? iy1 : iy2));
-    */
     int minX = (int)fminf(fminf(fx0, fx1), fx2);
     int minY = (int)fminf(fminf(fy0, fy1), fy2);
     int maxX = (int)fmaxf(fmaxf(fx0, fx1), fx2);
@@ -697,9 +685,6 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
     /* 2. Pre‑compute denominator and edge deltas */
     float denom = ((fy1 - fy2) * (fx0 - fx2) + (fx2 - fx1) * (fy0 - fy2));
     if (fabsf(denom) < 1e-6f){
-        /*
-        printf("degen, screen coords: (%f.1, %f.1), (%f.1, %f.1), (%f.1, %f.1)\n", fx0, fy0, fx1, fy1, fx2, fy2);
-        */
         return;
     }
 
@@ -724,10 +709,8 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
 
             float depth = l0 * z0 + l1 * z1 + l2 * z2;
             
-            
             if (!DepthBufferTestWrite(db, x, y, depth)) continue;
             
-
             /* 4. Interpolate UV */
             float u = l0 * u0 + l1 * u1 + l2 * u2;
             float v = l0 * v0 + l1 * v1 + l2 * v2;
@@ -739,18 +722,6 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
             int ty = (int)(sy * (sm->h - 1) + 0.5f);
             
             int lit = 0;
-            /*
-            if (tx < 0 || ty < 0 || tx >= sm->w || ty >= sm->h){
-                printf("Tried to sample outside of shadow map bounds\n");
-                printf("sh0: (%.2f, %.2f, %.2f)\n", sh0.x, sh0.y, sh0.z);
-
-                printf("sh1: (%.2f, %.2f, %.2f)\n", sh1.x, sh1.y, sh1.z);
-
-                printf("sh2: (%.2f, %.2f, %.2f)\n", sh2.x, sh2.y, sh2.z);
-                puts("paused\n");
-                getchar();
-            }
-            */
             /* clamp for debug purposes only - better solution later */
             tx = tx < 0 ? 0 : tx;
             tx = tx >= sm->w ? sm->w - 1 : tx;
@@ -902,16 +873,6 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
         vs2.y /= vs2.w;
         vs2.z /= vs2.w;
 
-        /* NDC -> screen */
-        /*
-        sx0 = (int)((v0.x * 0.5f + 0.5f) * fb->w);
-        sy0 = (int)((0.5f - v0.y * 0.5f) * fb->h);
-        sx1 = (int)((v1.x * 0.5f + 0.5f) * fb->w);
-        sy1 = (int)((0.5f - v1.y * 0.5f) * fb->h);
-        sx2 = (int)((v2.x * 0.5f + 0.5f) * fb->w);
-        sy2 = (int)((0.5f - v2.y * 0.5f) * fb->h);
-        */
-
         /* also to this for the shadow verts */
         vs0.x = (vs0.x * 0.5f + 0.5f);
         vs0.y = (0.5f - vs0.y * 0.5f);
@@ -927,288 +888,6 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
                 tu0, tv0, v1.x, v1.y, v1.z, tu1, tv1, v2.x, v2.y, v2.z, tu2, tv2
                 , sm, vs0, vs1, vs2);
     }
-}
-
-void DrawObj3DLambertShadowFloatClip(Camera* cam, Obj3D* obj, Framebuffer* fb,
-        Light* l, int nLights, DepthBuffer* db, ShadowMapper* sm){
-    int numTris = obj->model->mesh->indexCount / 9;
-    Mat4 matShadow = MatMatMul(&sm->matTransform, &obj->matModel);
-
-    int i;
-    for (i = 0; i < numTris; i++) {
-        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
-        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
-        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6, &i7,
-                &i8);
-
-        /* use indices to get data */ 
-        Vec4 v0, v1, v2, n0, n1, n2;
-        float tu0, tv0, tu1, tv1, tu2, tv2;
-
-        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
-        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
-        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
-        
-        /* set up ints for the screen space triangle coordinates */
-        int sx0, sy0, sx1, sy1, sx2, sy2;
-
-        /* model -> shadow clip */
-        Vec4 vs0 = MatVertMul(&matShadow, v0);
-        Vec4 vs1 = MatVertMul(&matShadow, v1);
-        Vec4 vs2 = MatVertMul(&matShadow, v2);
-
-        /* model -> world */
-        v0 = MatVertMul(&obj->matModel, v0);
-        v1 = MatVertMul(&obj->matModel, v1);
-        v2 = MatVertMul(&obj->matModel, v2);
-
-        /* world -> view */
-        v0 = MatVertMul(&cam->view, v0);
-        v1 = MatVertMul(&cam->view, v1);
-        v2 = MatVertMul(&cam->view, v2);
-
-        /* calculate tri normal */
-        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
-        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
-        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
-        Vec3 side0 = Vec3Sub(v1_, v0_);
-        Vec3 side1 = Vec3Sub(v2_, v0_);
-        Vec3 normal = Vec3Cross(side0, side1);
-
-        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
-        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
-        Vec3 normalizedNormal = Vec3Norm(normal);
-        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
-        
-        /* reject tris facing away from camera */
-        if (!(nDotLos > -0.001f)) continue;
-
-        /* clipping */
-        Vec4 normalizedNormal4 = Vec4Make(normalizedNormal.x,
-                normalizedNormal.y, normalizedNormal.z, 0.f);
-        ClipVertex clipVerts[3];
-        clipVerts[0].pos = v0;
-        clipVerts[0].u = tu0;
-        clipVerts[0].v = tv0;
-        clipVerts[0].normal = normalizedNormal4;
-        clipVerts[0].shadow = vs0;
-        clipVerts[1].pos = v1;
-        clipVerts[1].u = tu1;
-        clipVerts[1].v = tv1;
-        clipVerts[1].normal = normalizedNormal4;
-        clipVerts[1].shadow = vs1;
-        clipVerts[2].pos = v2;
-        clipVerts[2].u = tu2;
-        clipVerts[2].v = tv2;
-        clipVerts[2].normal = normalizedNormal4;
-        clipVerts[2].shadow = vs2;
-        
-        ClipResult clipped = ClipTri_(clipVerts, &cam->viewFrustum);
-
-        for (int j = 0; j < clipped.numTris; j++){
-            Vec4 cv0 = clipped.tris[j][0].pos;
-            Vec4 cv1 = clipped.tris[j][1].pos;
-            Vec4 cv2 = clipped.tris[j][2].pos;
-            float ctu0 = clipped.tris[j][0].u;
-            float ctv0 = clipped.tris[j][0].v;
-            float ctu1 = clipped.tris[j][1].u;
-            float ctv1 = clipped.tris[j][1].v;
-            float ctu2 = clipped.tris[j][2].u;
-            float ctv2 = clipped.tris[j][2].v;
-            Vec4 cs0 = clipped.tris[j][0].shadow;
-            Vec4 cs1 = clipped.tris[j][1].shadow;
-            Vec4 cs2 = clipped.tris[j][2].shadow;
-            /* flat shading, all normals are the same */
-            Vec4 cn = clipped.tris[j][0].normal;
-            Vec3 cn3 = Vec3Make(cn.x, cn.y, cn.z);
-
-            /* accumulate light */
-            int i;
-            int rAcc = 0;
-            int gAcc = 0;
-            int bAcc = 0;
-            int ldra = 0;
-            int ldga = 0;
-            int ldba = 0;
-            for (i = 0; i < nLights; i++){
-                if (l[i].type == LIGHT_AMBIENT){
-                    rAcc += GETR(l[i].rgb);
-                    gAcc += GETG(l[i].rgb);
-                    bAcc += GETB(l[i].rgb);
-                }
-                if (l[i].type == LIGHT_DIRECTIONAL){
-                    float s = Vec3Dot(cn3, Vec3Norm(l[i].inverseDir));
-                    s = s > 0.f ? s : 0.f;
-                    s = s <= 1.f ? s : 1.f;
-                    ldra += (int)(GETR(l[i].rgb) * s);
-                    ldga += (int)(GETG(l[i].rgb) * s);
-                    ldba += (int)(GETB(l[i].rgb) * s);
-                }
-            }
-            rAcc = rAcc > 255 ? 255 : rAcc;
-            gAcc = gAcc > 255 ? 255 : gAcc;
-            bAcc = bAcc > 255 ? 255 : bAcc;
-            ldra = ldra > 255 ? 255 : ldra;
-            ldga = ldga > 255 ? 255 : ldga;
-            ldba = ldba > 255 ? 255 : ldba;
-            float lR = rAcc / 255.f;
-            float lG = gAcc / 255.f;
-            float lB = bAcc / 255.f;
-            float ldraf = ldra / 255.f;
-            float ldgaf = ldga / 255.f;
-            float ldbaf = ldba / 255.f;
-            Vec3 la = Vec3Make(lR, lG, lB); 
-            Vec3 ld = Vec3Make(ldraf, ldgaf, ldbaf);
-            /* view -> clip */
-            cv0 = MatVertMul(&cam->proj, cv0);
-            cv1 = MatVertMul(&cam->proj, cv1);
-            cv2 = MatVertMul(&cam->proj, cv2);
-            cs0 = MatVertMul(&sm->matTransformProj, cs0);
-            cs1 = MatVertMul(&sm->matTransformProj, cs1);
-            cs2 = MatVertMul(&sm->matTransformProj, cs2);
-            /* clip -> NDC (clipping not yet implemented) */
-            cv0.x /= cv0.w;
-            cv0.y /= cv0.w;
-            cv0.z /= cv0.w;
-            cv1.x /= cv1.w;
-            cv1.y /= cv1.w;
-            cv1.z /= cv1.w;
-            cv2.x /= cv2.w;
-            cv2.y /= cv2.w;
-            cv2.z /= cv2.w;
-
-            /*
-            if (cv0.x > 1.f || cv0.x < -1.f ||
-                cv0.y > 1.f || cv0.y < -1.f ||
-                cv0.z > 1.f || cv0.z < -1.f ||
-                cv1.x > 1.f || cv1.x < -1.f ||
-                cv1.y > 1.f || cv1.y < -1.f ||
-                cv1.z > 1.f || cv1.z < -1.f ||
-                cv2.x > 1.f || cv2.x < -1.f ||
-                cv2.y > 1.f || cv2.y < -1.f ||
-                cv2.z > 1.f || cv2.z < -1.f) {
-                return;
-                printf("some verts were out of -1 to +1\n");
-                printf("%.2f, %.2f, %.2f\n"
-                        "%.2f, %.2f, %.2f\n"
-                        "%.2f, %.2f, %.2f\n", cv0.x, cv0.y, cv0.z, cv1.x, cv1.y,
-                        cv1.z, cv2.x, cv2.y, cv2.z);
-                puts("paused\n");
-                getchar();
-            }
-            */
-
-            
-            cs0.x /= cs0.w;
-            cs0.y /= cs0.w;
-            cs0.z /= cs0.w;
-            cs1.x /= cs1.w;
-            cs1.y /= cs1.w;
-            cs1.z /= cs1.w;
-            cs2.x /= cs2.w;
-            cs2.y /= cs2.w;
-            cs2.z /= cs2.w;
-            /* convert shadow verts to screen space, or perhaps not? */
-            cs0.x = (cs0.x * 0.5f + 0.5f);
-            cs0.y = (0.5f - cs0.y * 0.5f);
-            cs1.x = (cs1.x * 0.5f + 0.5f);
-            cs1.y = (0.5f - cs1.y * 0.5f);
-            cs2.x = (cs2.x * 0.5f + 0.5f);
-            cs2.y = (0.5f - cs2.y * 0.5f);
-            cs0.z = cs0.z * 0.5f + 0.5f;
-            cs1.z = cs1.z * 0.5f + 0.5f;
-            cs2.z = cs2.z * 0.5f + 0.5f;
-
-            TexturedLambertShadowFloatTri_(obj->model->tex, la, obj->id, db, ld, cv0.x, cv0.y, cv0.z,
-                ctu0, ctv0, cv1.x, cv1.y, cv1.z, ctu1, ctv1, cv2.x, cv2.y, cv2.z, ctu2, ctv2
-                , sm, cs0, cs1, cs2);
-        }
-    }
-}
-
-/* if we have a problem, try calling the non-underscore versions */
-static inline float ClipLine_(Vec3 p1, Vec3 p2, Plane plane, Vec3* out){
-    float d1 = SIGNED_DIST_POINT_PLANE(p1, plane);
-    float d2 = SIGNED_DIST_POINT_PLANE(p2, plane);
-    if (d1 * d2 >= 0.f) return -1.f;
-    float t = d1 / (d1 - d2);
-    *out = Vec3Add(p1, Vec3Scale(Vec3Sub(p2, p1), t));
-    return t;
-}
-
-static inline ClipVertex InterpolateVertex_(ClipVertex v1, ClipVertex v2,
-        float t){
-    ClipVertex result;
-    result.pos = Vec4Add(v1.pos, Vec4Scale(Vec4Sub(v2.pos, v1.pos), t));
-    result.u = v1.u + (v2.u - v1.u) * t;
-    result.v = v1.v + (v2.v - v1.v) * t;
-    result.normal = Vec4Add(v1.normal, Vec4Scale(Vec4Sub(v2.normal, v1.normal),
-                t));
-    result.shadow = Vec4Add(v1.shadow, Vec4Scale(Vec4Sub(v2.shadow, v1.shadow),
-                t));
-    return result;
-}
-
-static inline int ClipTriPlane_(ClipVertex in[3], Plane plane,
-        ClipVertex out[4]){
-    int outputCount = 0;
-    ClipVertex current, previous;
-    previous = in[2];
-    for (int i = 0; i < 3; i++){
-        current = in[i];
-        Vec3 currentPos = Vec3Make(current.pos.x, current.pos.y, current.pos.z);
-        Vec3 previousPos = Vec3Make(previous.pos.x, previous.pos.y,
-                previous.pos.z);
-        float currentDist = SIGNED_DIST_POINT_PLANE(currentPos, plane);
-        float previousDist = SIGNED_DIST_POINT_PLANE(previousPos, plane);
-        if (currentDist <= 0.f){
-            if (previousDist > 0.f){
-                Vec3 intersection;
-                float t = ClipLine_(previousPos, currentPos, plane,
-                        &intersection);
-                if (t >= 0.f) out[outputCount++] =
-                    InterpolateVertex_(previous, current, t);
-            }
-            out[outputCount++] = current;
-        } else if (previousDist <= 0.f){
-            Vec3 intersection;
-            float t = ClipLine_(previousPos, currentPos, plane, &intersection);
-            if (t >= 0.f) out[outputCount++] =
-                InterpolateVertex_(previous, current, t);
-        }
-        previous = current;
-    }
-    return outputCount;
-}
-
-
-static inline ClipResult ClipTri_(ClipVertex tri[3], Frustum* frustum){
-    ClipResult result;
-    ClipVertex buffer1[8], buffer2[8];
-    ClipVertex* in = tri;
-    ClipVertex* out = buffer1;
-    int vertCount = 3;
-    Plane planes[6] = {frustum->nearPlane, frustum->farPlane,
-        frustum->leftPlane, frustum->rightPlane, frustum->topPlane,
-        frustum->bottomPlane};
-    for (int p = 0; p < 6; p++){
-        if (!vertCount) break;
-        int newCount = ClipTriPlane_(in, planes[p], out);
-        vertCount = newCount;
-        ClipVertex* temp = in;
-        in = out;
-        out = (out == buffer1)? buffer2 : buffer1;
-    }
-    if (vertCount >= 3){
-        result.numTris = vertCount - 2;
-        if (result.numTris > 2) result.numTris = 2;
-        for (int i = 0; i < result.numTris; i++){
-            result.tris[i][0] = in[0];
-            result.tris[i][1] = in[i + 1];
-            result.tris[i][2] = in[i + 2];
-        }
-    }
-    return result;
 }
 
 void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
@@ -1240,12 +919,6 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
         GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
         GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
         
-        /* model -> world -> view */
-        /*
-        v0 = MatVertMul(&mModelView, v0);
-        v1 = MatVertMul(&mModelView, v1);
-        v2 = MatVertMul(&mModelView, v2);
-        */
         v0 = MatVertMul(&obj->matModel, v0);
         v1 = MatVertMul(&obj->matModel, v1);
         v2 = MatVertMul(&obj->matModel, v2);
@@ -1277,29 +950,6 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
         v1 = MatVertMul(&cam->proj, v1);
         v2 = MatVertMul(&cam->proj, v2);
  
-
-        /*
-        ClipVertex clipVerts[3];
-        Vec4 empty = Vec4Make(0.f, 0.f, 0.f, 0.f);
-        clipVerts[0].pos = v0;
-        clipVerts[0].normal = empty;
-        clipVerts[0].shadow = empty;
-        clipVerts[0].u = 0.f;
-        clipVerts[0].v = 0.f;
-        clipVerts[1].pos = v1;
-        clipVerts[1].normal = empty;
-        clipVerts[1].shadow = empty;
-        clipVerts[1].u = 0.f;
-        clipVerts[1].v = 0.f;
-        clipVerts[2].pos = v2;
-        clipVerts[2].normal = empty;
-        clipVerts[2].shadow = empty;
-        clipVerts[2].u = 0.f;
-        clipVerts[2].v = 0.f;
-
-        ClipResult clipResult = ClipTri_(clipVerts, &cam->viewFrustum);
-        */
-
         NGon result = TriClip_(v0, v1, v2);
         TriCluster cluster = Triangulate_(result);
 
@@ -1307,12 +957,6 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
             Vec4 v0 = cluster.tris[j].v0;
             Vec4 v1 = cluster.tris[j].v1;
             Vec4 v2 = cluster.tris[j].v2;
-            /* view -> clip */
-            /*
-            v0 = MatVertMul(&cam->proj, v0);
-            v1 = MatVertMul(&cam->proj, v1);
-            v2 = MatVertMul(&cam->proj, v2);
-            */
     
             v0.x /= v0.w;
             v0.y /= v0.w;
@@ -1323,33 +967,6 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
             v2.x /= v2.w;
             v2.y /= v2.w;
             v2.z /= v2.w;
-
-            /*
-            if (v0.x < -1.f || v0.x > 1.f ||
-                v0.y < -1.f || v0.y > 1.f ||
-                v0.z < -1.f || v0.z > 1.f ||
-                v1.x < -1.f || v1.x > 1.f ||
-                v1.y < -1.f || v1.y > 1.f ||
-                v1.z < -1.f || v1.z > 1.f ||
-                v2.x < -1.f || v2.x > 1.f ||
-                v2.y < -1.f || v2.y > 1.f ||
-                v2.z < -1.f || v2.z > 1.f) continue;
-                */
-
-
-
-
-            /*
-            assert(v0.x >= -1.f); assert(v0.x <= 1.f);
-            assert(v0.y >= -1.f); assert(v0.y <= 1.f);
-            assert(v0.z >= -1.f); assert(v0.z <= 1.f);
-            assert(v1.x >= -1.f); assert(v1.x <= 1.f);
-            assert(v1.y >= -1.f); assert(v1.y <= 1.f);
-            assert(v1.z >= -1.f); assert(v1.z <= 1.f);
-            assert(v2.x >= -1.f); assert(v2.x <= 1.f);
-            assert(v2.y >= -1.f); assert(v2.y <= 1.f);
-            assert(v2.z >= -1.f); assert(v2.z <= 1.f);
-            */
 
             Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
             Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
@@ -1372,31 +989,9 @@ static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
     ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
     ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
     
-    /*
-    assert(ndc0.x >= 0.f); assert(ndc0.x < w);
-    assert(ndc0.y >= 0.f); assert(ndc0.y < h);
-    assert(ndc1.x >= 0.f); assert(ndc1.x < w);
-    assert(ndc1.y >= 0.f); assert(ndc1.y < h);
-    assert(ndc2.x >= 0.f); assert(ndc2.x < w);
-    assert(ndc2.y >= 0.f); assert(ndc2.y < h);
-    */
-
-    /*
-    if (ndc0.z == 0.f || ndc1.z == 0.f || ndc2.z == 0.f){
-    printf("z0: %.3f, z1: %.3f, z2: %.3f\n", ndc0.z, ndc1.z, ndc2.z);
-    }
-    */
-
-    /*
-    DrawLineDDA_(ndc0, ndc1, db);
-    DrawLineDDA_(ndc1, ndc2, db);
-    DrawLineDDA_(ndc2, ndc0, db);
-    */
-    
     DrawLineWu1_(ndc0, ndc1, db);
     DrawLineWu1_(ndc1, ndc2, db);
     DrawLineWu1_(ndc2, ndc0, db);
-
 }
 
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
@@ -1434,43 +1029,12 @@ static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
         float valInDB = 420.f;
 
         float d = depth0 + ((i / (float)steps) * dz);
-        /*
-        if (d >= 1.f){
-            printf("pause\n");
-            getchar();
-        }
-        */
         int depthTest = DepthBufferTestWriteDebug(db, x, y, d, &valInDB);
-        /*
-        if (!DepthBufferTestWriteDebug(db, x, y, depth0, &valInDB)){
-            printf("depth0: %.8f, depth in buffer: %.8f, z_inc: %.8f\n", depth0, valInDB, z_inc);
-            continue;
-        }
-        */
         if (!depthTest){
-            /*
-            printf("failed, x: %d, y: %d, depth: %.8f, buffer: %.8f\n", x, y, depth0, valInDB);
-            */
             continue;
         } else {
-            /*
-            printf("passed, x: %d, y: %d, depth: %.8f, buffer: %.8f\n", x, y, depth0, valInDB);
-            */
         }
-        /*
-        unsigned char a = (unsigned char)(((float)i / steps) * 255);
-        int newc = RGBA_INT(192, 128, 128, a);
-        BlendPixel_(x, y, newc);
-        */
         PutPixel(x, y, c);
- 
-        /*
-        v0.x += x_inc;
-        v0.y += y_inc;
-        */
-        /*
-        depth0 += z_inc;
-        */
     }
 }
 
@@ -1535,10 +1099,6 @@ static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db){
             a1 = (unsigned char)(fraction * 255);
             BlendPixel_(x, yFloor, RGBA_INT(r, g, b, a0));
             BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, a1));
-            /*
-            printf("x: %d, y0: %d, y1: %d, %.3f, a0: %d, a1: %d\n", x, yFloor,
-                    yFloor + 1, y, a0, a1);
-                    */
         }
     } else {
         if (v1.y < v0.y){
@@ -1598,10 +1158,6 @@ static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db){
             a1 = (unsigned char)(fraction * 255);
             BlendPixel_(xFloor, y, RGBA_INT(r, g, b, a0));
             BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, a1));
-            /*
-            printf("x0: %d, x1: %d, y: %d, a0: %d, a1: %d\n", xFloor, xFloor + 1,
-                   y, a0, a1);
-                   */
         }
     }
 }
