@@ -9,6 +9,13 @@ Framebuffer framebuffer = {0};
 Renderer renderer = {0};
 float* depthbuffer = 0;
 
+void RendererInit(int w, int h, void* buf){
+    renderer.framebuffer.w = w;
+    renderer.framebuffer.h = h;
+    renderer.framebuffer.buf = buf;
+    renderer.running = 1;
+}
+
 static inline void PutPixel_(int x, int y, int c){
     int* pixel = (int*)renderer.framebuffer.buf +
         (y * renderer.framebuffer.w + x);
@@ -1031,7 +1038,8 @@ void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
         
         /* reject tris facing away from camera */
         /* TODO: move this epsilon into a macro somewhere */
-        if (!(nDotLos > -0.001f)) continue;
+        if (renderer.enableCulling)
+            if (!(nDotLos > -0.001f)) continue;
         v0 = MatVertMul(&cam->proj, v0);
         v1 = MatVertMul(&cam->proj, v1);
         v2 = MatVertMul(&cam->proj, v2);

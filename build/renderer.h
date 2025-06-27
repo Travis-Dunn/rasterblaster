@@ -18,6 +18,8 @@ typedef struct {
 typedef struct {
     int running;
     Framebuffer framebuffer;
+    int enableCulling;
+    int cullFace;
 } Renderer;
 
 /* candidate for removal */
@@ -40,6 +42,9 @@ typedef struct {
 } TriCluster;
 
 extern Renderer renderer;
+
+/* called by platform layer */
+void RendererInit(int w, int h, void* buf);
 
 extern void PutPixel_ASM(int x, int y);
 static inline void PutPixel_(int x, int y, int c);

@@ -146,11 +146,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     MSG msg;
     running = 1;
 
+    /*
     ResizeDIBSection(INTERNAL_WIDTH, INTERNAL_HEIGHT);
     renderer.framebuffer.w = INTERNAL_WIDTH;
     renderer.framebuffer.h = INTERNAL_HEIGHT;
     renderer.framebuffer.buf = bitmapMemory;
     renderer.running = 1;
+    */
+    RendererInit(INTERNAL_WIDTH, INTERNAL_HEIGHT, bitmapMemory);
 
     Init(); /* demo */
 

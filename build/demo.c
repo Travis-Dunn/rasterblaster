@@ -41,6 +41,9 @@ void Init(){
     SetPlatformEventQueue(eventQueue);
     InputInit(&inputSystem);
     InitTimer(1024);
+    /* Renderer */
+    renderer.enableCulling = DEFAULT_ENABLE_CULLING;
+    renderer.cullFace = DEFAULT_CULL_FACE;
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
     (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
             renderer.framebuffer.h);
