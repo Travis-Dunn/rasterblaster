@@ -8,7 +8,8 @@ typedef struct {
     float* buf;
 } DepthBuffer;
 
-int     DepthBufferInit             (DepthBuffer* db, int w, int h);
+int     DepthBufferInitOld          (DepthBuffer* db, int w, int h);
+void    DepthBufferInit             ();
 int     DepthBufferFree             (DepthBuffer* db);
 void    DepthBufferClear            (DepthBuffer* db, float val);
 int     DepthBufferTestWrite        (DepthBuffer* db, int x, int y, float z);

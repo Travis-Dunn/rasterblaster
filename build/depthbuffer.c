@@ -1,8 +1,9 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "depthbuffer.h"
+#include "renderer.h"
 
-int DepthBufferInit(DepthBuffer* db, int w, int h){
+int DepthBufferInitOld(DepthBuffer* db, int w, int h){
     if (!db){
         /* TODO */
         printf("can't pass null to DepthBufferInit\n");
@@ -84,4 +85,14 @@ int DepthBufferTestWriteDebug(DepthBuffer* db, int x, int y, float z,
     } else {
         *out = *address;
     } return 0;
+}
+
+void DepthBufferInit(){
+    renderer.db.buf = 0;
+    renderer.db.w = renderer.framebuffer.w;
+    renderer.db.h = renderer.framebuffer.h;
+    renderer.db.sampleCount = renderer.db.w * renderer.db.h;
+    renderer.db.buf = malloc(sizeof(float) * renderer.db.sampleCount);
+    assert(renderer.db.buf);
+    renderer.db.init = 1;
 }

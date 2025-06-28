@@ -6,6 +6,7 @@
 /* Renderer defaults */
 #define DEFAULT_ENABLE_CULLING                  1
 #define DEFAULT_CULL_FACE                       0
+#define DEFAULT_ENABLE_DEPTH_TEST               1
 
 #endif /* CONFIG_H */
 

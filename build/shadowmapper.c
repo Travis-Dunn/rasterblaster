@@ -44,7 +44,7 @@ int ShadowMapperInit(ShadowMapper* sm, int w, int h, float bias, Camera* cam,
     sm->init = 1;
     sm->bias = bias;
     sm->lightDir = lightDir;
-    DepthBufferInit(&sm->db, sm->w, sm->h);
+    DepthBufferInitOld(&sm->db, sm->w, sm->h);
     return 0;
 }
 

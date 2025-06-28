@@ -20,6 +20,11 @@ typedef struct {
     Framebuffer framebuffer;
     int enableCulling;
     int cullFace;
+    /* Depth testing */
+    int enableDepthTest;
+    int depthTestInit;
+    DepthBuffer db;
+    unsigned char gammaLUT[256];
 } Renderer;
 
 /* candidate for removal */
@@ -62,7 +67,8 @@ static inline void DrawSlopeMinusOneLine_(int x0, int y0, int y1, int c);
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db);
-static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT);
+static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c);
+
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
 void FilledTri(int x0, int y0, int x1, int y1, int x2, int y2, int color);
@@ -86,7 +92,7 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
 static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         DepthBuffer* db, Framebuffer* fb);
 static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        unsigned char* gammaLUT, Framebuffer* fb);
+        int c);
 
 
 
@@ -98,8 +104,7 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
         DepthBuffer* db);
-void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
-        unsigned char* gammaLUT);
+void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c);
 
 
 

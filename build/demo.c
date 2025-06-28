@@ -44,8 +44,9 @@ void Init(){
     /* Renderer */
     renderer.enableCulling = DEFAULT_ENABLE_CULLING;
     renderer.cullFace = DEFAULT_CULL_FACE;
+
     InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
-    (void)DepthBufferInit(&depthbuf, renderer.framebuffer.w,
+    (void)DepthBufferInitOld(&depthbuf, renderer.framebuffer.w,
             renderer.framebuffer.h);
     (void)ShadowMapperInit(&shadowMapper, renderer.framebuffer.w,
             renderer.framebuffer.h, 0.003f, &cam, Vec3Make(1, -.5f, -1));
@@ -92,14 +93,13 @@ void Init(){
     ground.id = 11;
     ShadowMapperUpdate(&shadowMapper);
     UpdateCamera(&cam);
-    GammaLUTInit(&gammaLUT[0]);
     debugX, debugY = 0;
     frameCount = 0;
 }
 
 void Render(){
     ClearScreen(96);
-    DepthBufferClear(&depthbuf, 1.f);
+    DepthBufferClear(&renderer.db, 1.f);
     ClearPickbuf();
     ShadowMapperClear(&shadowMapper, 1.f);
 
@@ -114,8 +114,8 @@ void Render(){
     */
 
     ShadowMapperRender(&shadowMapper, &cube);
-    Obj3DDrawWireframeGamma(&cam, &cube, &renderer.framebuffer, &gammaLUT[0]);
-    Obj3DDrawWireframeGamma(&cam, &sphere, &renderer.framebuffer, &gammaLUT[0]);
+    Obj3DDrawWireframeGamma(&cam, &sphere, RGBA_INT(192, 96, 255, 255));
+    Obj3DDrawWireframeGamma(&cam, &cube, RGBA_INT(255, 192, 128, 255));
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -191,10 +191,16 @@ void Update(){
         CameraRotLocalYPlus(&cam);
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_X_MINUS)){
+        /*
         CameraRotLocalXMinus(&cam);
+        */
+        cube.pos.z += 0.1f;
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_X_PLUS)){
+        /*
         CameraRotLocalXPlus(&cam);
+        */
+        cube.pos.z += -0.1f;
     }
     float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dx != 0.f){

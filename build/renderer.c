@@ -10,9 +10,17 @@ Renderer renderer = {0};
 float* depthbuffer = 0;
 
 void RendererInit(int w, int h, void* buf){
+    /* framebuffer */
     renderer.framebuffer.w = w;
     renderer.framebuffer.h = h;
     renderer.framebuffer.buf = buf;
+    /* depth testing */
+    if (renderer.enableDepthTest = DEFAULT_ENABLE_DEPTH_TEST) {
+        DepthBufferInit();
+        renderer.depthTestInit = 1;
+    } else renderer.depthTestInit = 0;
+
+    GammaLUTInit(&renderer.gammaLUT[0]);
     renderer.running = 1;
 }
 
@@ -984,11 +992,9 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
     }
 }
 
-void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
-        unsigned char* gammaLUT){
+void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c){
     assert(cam);
     assert(obj);
-    assert(fb);
 
     int triCount = obj->model->mesh->indexCount / 9;
 
@@ -1066,7 +1072,7 @@ void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, Framebuffer* fb,
             Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
             Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
         
-            DrawWireframeTriGamma_(ndc0, ndc1, ndc2, gammaLUT, fb);
+            DrawWireframeTriGamma_(ndc0, ndc1, ndc2, c);
         }
     }
 }
@@ -1089,10 +1095,10 @@ static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
 }
 
 static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        unsigned char* gammaLUT, Framebuffer* fb){
+        int c){
     /* ndc -> floating point screen space for x and y */
-    int w = fb->w;
-    int h = fb->h;
+    int w = renderer.framebuffer.w;
+    int h = renderer.framebuffer.h;
     ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
     ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
     ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
@@ -1100,9 +1106,9 @@ static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
     ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
     ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
     
-    DrawLineWu_Gamma(ndc0, ndc1, &gammaLUT[0]);
-    DrawLineWu_Gamma(ndc1, ndc2, &gammaLUT[0]);
-    DrawLineWu_Gamma(ndc2, ndc0, &gammaLUT[0]);
+    DrawLineWu_Gamma(ndc0, ndc1, c);
+    DrawLineWu_Gamma(ndc1, ndc2, c);
+    DrawLineWu_Gamma(ndc2, ndc0, c);
 }
 
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
@@ -1351,10 +1357,10 @@ static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db) {
     }
 }
 
-static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT){
-    unsigned char r = 192;
-    unsigned char g = 128;
-    unsigned char b = 128;
+static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
+    unsigned char r = GETR(c);
+    unsigned char g = GETG(c);
+    unsigned char b = GETB(c);
     
     float dx = v1.x - v0.x;
     float dy = v1.y - v0.y;
@@ -1379,31 +1385,70 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT){
         int x0 = (int)roundf(v0.x);
         int x1 = (int)roundf(v1.x);
         float y = v0.y + gradient * (x0 - v0.x);
+
+        float dz = v1.z - v0.z;
+        float dx = v1.x - v0.x;
         
         // Draw pixels from x0 to x1
         for (int x = x0; x <= x1; x++) {
             int yFloor = (int)floorf(y);
             float fraction = y - yFloor;
-            
+
+            float z = v0.z + ((((float)x - v0.x) / dx) * dz);
+            int testy = (yFloor >= 0) ? yFloor : 0;
+            testy = (testy < renderer.framebuffer.h) ? testy : renderer.framebuffer.h;
+            if (!DepthBufferTestWrite(&renderer.db, x, testy, z)){
+                y += gradient;
+                continue;
+            }
+
+            if (0){
+            /* top pixel is dominant */
+            if (fraction < 0.5f){
+                if (x >= 0 && x < renderer.framebuffer.w &&
+                        yFloor >= 0 && yFloor < renderer.framebuffer.h){
+                    if (!DepthBufferTestWrite(&renderer.db, x, yFloor, z)){
+                        y += gradient;
+                        continue;
+                    }
+                } else if (x >= 0 && x < renderer.framebuffer.w &&
+                    yFloor + 1 >= 0 && yFloor + 1 < renderer.framebuffer.h){
+                    if (!DepthBufferTestWrite(&renderer.db, x, yFloor + 1, z)){
+                        y += gradient;
+                        continue;
+                    }
+                }
+            /* bottom pixel is dominant */
+            } else {
+                if (x >= 0 && x < renderer.framebuffer.w &&
+                        yFloor + 1 >= 0 && yFloor + 1 < renderer.framebuffer.h){
+                    if (!DepthBufferTestWrite(&renderer.db, x, yFloor + 1, z)){
+                        y += gradient;
+                        continue;
+                    }
+                } else if (x >= 0 && x < renderer.framebuffer.w &&
+                        yFloor >= 0 && yFloor < renderer.framebuffer.h){
+                    if (!DepthBufferTestWrite(&renderer.db, x, yFloor, z)){
+                        y += gradient;
+                        continue;
+                    }
+                }
+            }
+            }
+
             // Anti-aliased pixels
             unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
             unsigned char a1 = (unsigned char)(fraction * 255);
             
-            /*
-            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, a0));
-            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, a1));
-            */
             assert(a0 >= 0 && a0 < 256 && a1 >= 0 && a1 < 256);
-            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, gammaLUT[a0]));
-            BlendPixel_(x, yFloor + 1, RGBA_INT(r, g, b, gammaLUT[a1]));
+            BlendPixel_(x, yFloor, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
+            BlendPixel_(x, yFloor + 1, RGBA_INT
+                    (r, g, b, renderer.gammaLUT[a1]));
  
-            
             y += gradient;
         }
     } else {
-        // Line is more vertical than horizontal
-        
-        // Ensure we go from bottom to top
+        /* slope > 1 */
         if (v0.y > v1.y) {
             // Swap endpoints
             Vec3 temp = v0;
@@ -1417,18 +1462,31 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, unsigned char* gammaLUT){
         int y0 = (int)roundf(v0.y);
         int y1 = (int)roundf(v1.y);
         float x = v0.x + gradient * (y0 - v0.y);
+
+        float dz = v1.z - v0.z;
+        float dy = v1.y - v0.y;
         
         // Draw pixels from y0 to y1
         for (int y = y0; y <= y1; y++) {
             int xFloor = (int)floorf(x);
             float fraction = x - xFloor;
+
+            float z = v0.z + (((y - v0.y) / dy) * dz);
+            int testx = (xFloor >= 0) ? xFloor : 0;
+            testx = (testx < renderer.framebuffer.w) ? testx : renderer.framebuffer.w;
+            if (!DepthBufferTestWrite(&renderer.db, testx, y, z)){
+                x += gradient;
+                continue;
+            }
+
             
             // Anti-aliased pixels
             unsigned char a0 = (unsigned char)((1.0f - fraction) * 255);
             unsigned char a1 = (unsigned char)(fraction * 255);
             
-            BlendPixel_(xFloor, y, RGBA_INT(r, g, b, a0));
-            BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, a1));
+            assert(a0 >= 0 && a0 < 256 && a1 >= 0 && a1 < 256);
+            BlendPixel_(xFloor, y, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
+            BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, renderer.gammaLUT[a1]));
             
             x += gradient;
         }
