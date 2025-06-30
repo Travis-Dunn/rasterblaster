@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include "renderer.h"
 #include "mouse.h"
+#include "logger.h"
 
 Framebuffer framebuffer = {0};
 Renderer renderer = {0};
@@ -45,7 +46,11 @@ void PutPixel_external_safe(int x, int y, int c){
 
 void BlendPixel_(int x, int y, int c){
     if (x >= renderer.framebuffer.w || x < 0 ||
-        y >= renderer.framebuffer.h || y < 0) return;
+        y >= renderer.framebuffer.h || y < 0){
+        printf("x: %d, y: %d\n", x, y);
+        getchar();
+        return;
+    }    
  
     int* addr = (int*)renderer.framebuffer.buf +
         (y * renderer.framebuffer.w + x); 
@@ -1071,8 +1076,10 @@ void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c){
             Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
             Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
             Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
+
+            Vec3 arr[] = { ndc0, ndc1, ndc2 };
         
-            DrawWireframeTriGamma_(ndc0, ndc1, ndc2, c);
+            DrawWireframeTri_new(arr, c);
         }
     }
 }
@@ -1097,15 +1104,71 @@ static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
 static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         int c){
     /* ndc -> floating point screen space for x and y */
-    int w = renderer.framebuffer.w;
-    int h = renderer.framebuffer.h;
+    int w = renderer.framebuffer.w - 1;
+    int h = renderer.framebuffer.h - 1;
+
+    NdcValidationResult results[3];
+    Vec3 ndcs[3] = { ndc0, ndc1, ndc2 };
+    for (int i = 0; i < 3; i++){
+        results[i] = NdcValidate(ndcs[i].y);
+        if (results[i] != NDC_VALID){
+            float error = fmaxf(ndcs[i].y - 1.f, -1.f - ndcs[i].y);
+            LogLevel level;
+            switch(results[i]){
+            case NDC_PRECISION:{
+                level = LOG_PRECISION; 
+            } break;
+            case NDC_SUSPICIOUS:{
+                level = LOG_SUSPICIOUS;
+            } break;
+            case NDC_PATHOLOGICAL:{
+                level = LOG_PATHOLOGICAL;
+            } break;
+            default: level = LOG_INFO; break;
+            }
+            LogNDCValidation(level, ndcs[i].x, ndcs[i].y, ndcs[i].z, error);
+        }
+    }
+
+    /*
+    if (!(ndc0.y >= -1.f && ndc0.y <= 1.f)){
+        printf("ndc0.y: %8.5f before calculation\n", ndc0.y);
+        getchar();
+    }
+    if (!(ndc1.y >= -1.f && ndc1.y <= 1.f)){
+        printf("ndc1.y: %8.5f before calculation\n", ndc1.y);
+        getchar();
+    }
+    if (!(ndc2.y >= -1.f && ndc2.y <= 1.f)){
+        printf("ndc2.y: %8.5f before calculation\n", ndc2.y);
+        getchar();
+    }
+    */
+
     ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
     ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
     ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
     ndc1.y = (0.5f - ndc1.y * 0.5f) * h;
     ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
     ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
-    
+
+    /*
+    if (!(ndc0.y >= 0.f && ndc0.y <= renderer.framebuffer.h)){
+        printf("ndc0.y: %8.5f after calculation\n", ndc0.y);
+        getchar();
+    }
+    if (!(ndc1.y >= 0.f && ndc1.y <= renderer.framebuffer.h)){
+        printf("ndc1.y: %8.5f after calculation\n", ndc1.y);
+        getchar();
+    }
+    if (!(ndc2.y >= 0.f && ndc2.y <= renderer.framebuffer.h)){
+        printf("ndc2.y: %8.5f after calculation\n", ndc2.y);
+        getchar();
+    }
+    */
+
+
+
     DrawLineWu_Gamma(ndc0, ndc1, c);
     DrawLineWu_Gamma(ndc1, ndc2, c);
     DrawLineWu_Gamma(ndc2, ndc0, c);
@@ -1384,6 +1447,10 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
         // Handle first endpoint
         int x0 = (int)roundf(v0.x);
         int x1 = (int)roundf(v1.x);
+        assert(x0 >= 0);
+        assert(x0 < 1000);
+        assert(x1 >= 0);
+        assert(x1 < 1000);
         float y = v0.y + gradient * (x0 - v0.x);
 
         float dz = v1.z - v0.z;
@@ -1392,6 +1459,7 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
         // Draw pixels from x0 to x1
         for (int x = x0; x <= x1; x++) {
             int yFloor = (int)floorf(y);
+            yFloor = (yFloor == -1) ? 0 : yFloor;
             float fraction = y - yFloor;
 
             float z = v0.z + ((((float)x - v0.x) / dx) * dz);
@@ -1441,7 +1509,18 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
             unsigned char a1 = (unsigned char)(fraction * 255);
             
             assert(a0 >= 0 && a0 < 256 && a1 >= 0 && a1 < 256);
+            if (x < 0 || x > 999 || yFloor < 0 || yFloor > 999){
+                printf("first block\n");
+                printf("x: %d, y: %d\n", x, yFloor);
+                printf("y: %8.5f\n", y);
+                printf("v0.y: %8.5f, gradient: %8.5f\n", v0.y, gradient);
+                getchar();
+            }
             BlendPixel_(x, yFloor, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
+            if (yFloor >= 999){
+                y += gradient;
+                continue;
+            }
             BlendPixel_(x, yFloor + 1, RGBA_INT
                     (r, g, b, renderer.gammaLUT[a1]));
  
@@ -1461,6 +1540,10 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
         // Handle first endpoint
         int y0 = (int)roundf(v0.y);
         int y1 = (int)roundf(v1.y);
+        assert(y0 >= 0);
+        assert(y0 < 1000);
+        assert(y1 >= 0);
+        assert(y1 < 1000);
         float x = v0.x + gradient * (y0 - v0.y);
 
         float dz = v1.z - v0.z;
@@ -1469,6 +1552,7 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
         // Draw pixels from y0 to y1
         for (int y = y0; y <= y1; y++) {
             int xFloor = (int)floorf(x);
+            xFloor = (xFloor == -1) ? 0 : xFloor;
             float fraction = x - xFloor;
 
             float z = v0.z + (((y - v0.y) / dy) * dz);
@@ -1485,7 +1569,16 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
             unsigned char a1 = (unsigned char)(fraction * 255);
             
             assert(a0 >= 0 && a0 < 256 && a1 >= 0 && a1 < 256);
+            if (y < 0 || y > 999 || xFloor < 0 || xFloor > 999){
+                printf("second block\n");
+                printf("y: %d, x: %d\n", y, xFloor);
+                getchar();
+            }
             BlendPixel_(xFloor, y, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
+            if (xFloor >= 999){
+                x += gradient;
+                continue;
+            }
             BlendPixel_(xFloor + 1, y, RGBA_INT(r, g, b, renderer.gammaLUT[a1]));
             
             x += gradient;
@@ -1496,10 +1589,10 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
 static inline int PointInsidePlane_(Vec4 point, int plane){
     assert(plane >= 0 && plane < 6);
     switch (plane) {
-    case 0: return point.x > -point.w; /* left     */
-    case 1: return point.x <  point.w; /* right    */
-    case 2: return point.y > -point.w; /* bottom   */
-    case 3: return point.y <  point.w; /* top      */
+    case 0: return point.x > -point.w + 1e-6f; /* left     */
+    case 1: return point.x <  point.w - 1e-6f; /* right    */
+    case 2: return point.y > -point.w + 1e-6f; /* bottom   */
+    case 3: return point.y <  point.w - 1e-6f; /* top      */
     case 4: return point.z > -point.w; /* near     */
     case 5: return point.z <  point.w; /* far      */
     }
@@ -1617,4 +1710,55 @@ void GammaLUTInit(unsigned char* lut){
         float val = powf((i / 255.f), 1.f / 2.2f);
         lut[i] = (unsigned char)(val * 255.f);
     }
+}
+
+static inline NdcValidationResult NdcValidate(float f){
+    if (f >= -1.f && f <= 1.f) return NDC_VALID;
+
+    float error = fmaxf(f - 1.f, -1.f - f);
+    if (error <= 1e-6f){
+        return NDC_PRECISION;
+    } else if (error <= 1e-4f){
+        return NDC_SUSPICIOUS; 
+    } else return NDC_PATHOLOGICAL;
+}
+
+/* Assumes input is in domain -1.f to +1.f.
+ * Output is guaranteed to be in domain 0.f to screen dimension - 1.f.
+ * Depth is not changed. */
+static inline void TransformTriNDCFloatScreen_(Vec3* coords){
+    /*
+    assert(coords[0].x >= -1.f); assert(coords[0].x <= 1.f);    
+    assert(coords[0].y >= -1.f); assert(coords[0].y <= 1.f);    
+    assert(coords[0].z >= -1.f); assert(coords[0].z <= 1.f);    
+    assert(coords[1].x >= -1.f); assert(coords[1].x <= 1.f);    
+    assert(coords[1].y >= -1.f); assert(coords[1].y <= 1.f);    
+    assert(coords[1].z >= -1.f); assert(coords[1].z <= 1.f);    
+    assert(coords[2].x >= -1.f); assert(coords[2].x <= 1.f);    
+    assert(coords[2].y >= -1.f); assert(coords[2].y <= 1.f);    
+    assert(coords[2].z >= -1.f); assert(coords[2].z <= 1.f);    
+    */
+
+    int w = renderer.framebuffer.w - 1;
+    int h = renderer.framebuffer.h - 1;
+    coords[0].x = (coords[0].x * 0.5f + 0.5f) * w;
+    coords[1].x = (coords[1].x * 0.5f + 0.5f) * w;
+    coords[2].x = (coords[2].x * 0.5f + 0.5f) * w;
+    coords[0].y = (0.5f - coords[0].y * 0.5f) * h;
+    coords[1].y = (0.5f - coords[1].y * 0.5f) * h;
+    coords[2].y = (0.5f - coords[2].y * 0.5f) * h;
+
+    coords[0].x = fmaxf(0.f, fminf(w, coords[0].x));
+    coords[1].x = fmaxf(0.f, fminf(w, coords[1].x));
+    coords[2].x = fmaxf(0.f, fminf(w, coords[2].x));
+    coords[0].y = fmaxf(0.f, fminf(h, coords[0].y));
+    coords[1].y = fmaxf(0.f, fminf(h, coords[1].y));
+    coords[2].y = fmaxf(0.f, fminf(h, coords[2].y));
+}
+
+static inline void DrawWireframeTri_new(Vec3* coords, int c){
+    TransformTriNDCFloatScreen_(coords);      
+    DrawLineWu_Gamma(coords[0], coords[1], c);
+    DrawLineWu_Gamma(coords[1], coords[2], c);
+    DrawLineWu_Gamma(coords[2], coords[0], c);
 }

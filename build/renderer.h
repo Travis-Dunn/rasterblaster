@@ -32,6 +32,14 @@ typedef struct {
     int x, y;
 } Point2D;
 
+/* internal helper */
+typedef enum {
+    NDC_VALID,
+    NDC_PRECISION,
+    NDC_SUSPICIOUS,
+    NDC_PATHOLOGICAL
+} NdcValidationResult;
+
 typedef struct {
     Vec4 verts[8];
     int vertCount;
@@ -93,6 +101,10 @@ static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         DepthBuffer* db, Framebuffer* fb);
 static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
         int c);
+static inline void DrawWireframeTri_new(Vec3* coords, int c);
+static inline NdcValidationResult NdcValidate(float f);
+/* Ready for prod? */
+static inline void TransformTriNDCFloatScreen_(Vec3* coords);
 
 
 

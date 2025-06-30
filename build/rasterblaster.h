@@ -11,9 +11,9 @@
 #include "event.h"
 
 /* Display scaling */
-#define INTERNAL_WIDTH 250
-#define INTERNAL_HEIGHT 250
-#define PIXEL_SCALE 4
+#define INTERNAL_WIDTH 1000
+#define INTERNAL_HEIGHT 1000
+#define PIXEL_SCALE 1
 
 #define WINDOW_WIDTH (PIXEL_SCALE * INTERNAL_WIDTH)
 #define WINDOW_HEIGHT (PIXEL_SCALE * INTERNAL_HEIGHT)

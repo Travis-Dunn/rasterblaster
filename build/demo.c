@@ -12,6 +12,7 @@
 #include "shadowmapper.h"
 #include "event.h"
 #include "input.h"
+#include "logger.h"
 
 static Model model;
 static Model groundModel;
@@ -39,6 +40,7 @@ void Init(){
         printf("problem setting up event queue\n");
     }
     SetPlatformEventQueue(eventQueue);
+    LoggerInit("log.txt");
     InputInit(&inputSystem);
     InitTimer(1024);
     /* Renderer */
@@ -98,7 +100,7 @@ void Init(){
 }
 
 void Render(){
-    ClearScreen(96);
+    ClearScreen(192);
     DepthBufferClear(&renderer.db, 1.f);
     ClearPickbuf();
     ShadowMapperClear(&shadowMapper, 1.f);
@@ -114,8 +116,8 @@ void Render(){
     */
 
     ShadowMapperRender(&shadowMapper, &cube);
-    Obj3DDrawWireframeGamma(&cam, &sphere, RGBA_INT(192, 96, 255, 255));
-    Obj3DDrawWireframeGamma(&cam, &cube, RGBA_INT(255, 192, 128, 255));
+    Obj3DDrawWireframeGamma(&cam, &sphere, RGBA_INT(64, 32, 96, 255));
+    Obj3DDrawWireframeGamma(&cam, &cube, RGBA_INT(96, 64, 32, 255));
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -189,6 +191,8 @@ void Update(){
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_Y_PLUS)){
         CameraRotLocalYPlus(&cam);
+        LoggerShutdown();
+        running = 0;
     }
     if (InputIsActionPressed(&inputSystem, ACTION_CAM_ROT_L_X_MINUS)){
         /*
@@ -215,4 +219,6 @@ void Update(){
     float oldZ = cam.pos.z;
     UpdateCamera(&cam);
     ShadowMapperUpdate(&shadowMapper);
+
+    LoggerFlush();
 }
