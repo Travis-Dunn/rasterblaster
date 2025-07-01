@@ -910,94 +910,7 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
     }
 }
 
-void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
-        DepthBuffer* db){
-    assert(cam);
-    assert(obj);
-    assert(fb);
-    assert(db);
-
-    int triCount = obj->model->mesh->indexCount / 9;
-
-    Mat4 mModelView = MatMatMul(&cam->view, &obj->matModel);
-    
-    for (int i = 0; i < triCount; i++){
-        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
-        /* we are pulling out stuff that we don't need, but that's just because
-         * I don't feel like making a version of GetTriIndices and GetVertex 
-         * that only get the positions, because it would only be used for 
-         * wireframe/debugging */
-        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
-        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6,
-                &i7, &i8);
-
-        /* use indices to get data */ 
-        Vec4 v0, v1, v2, n0, n1, n2;
-        float tu0, tv0, tu1, tv1, tu2, tv2;
-
-        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
-        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
-        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
-        
-        v0 = MatVertMul(&obj->matModel, v0);
-        v1 = MatVertMul(&obj->matModel, v1);
-        v2 = MatVertMul(&obj->matModel, v2);
-        v0 = MatVertMul(&cam->view, v0);
-        v1 = MatVertMul(&cam->view, v1);
-        v2 = MatVertMul(&cam->view, v2);
-
-        /* calculate tri normal, faster than transforming the existing normals
-         * stored in the model, and you only need one normal for backface
-         * culling and flat shading. For gouraud/phong, transform the
-         * per-vertex normals */
-        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
-        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
-        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
-        Vec3 side0 = Vec3Sub(v1_, v0_);
-        Vec3 side1 = Vec3Sub(v2_, v0_);
-        Vec3 normal = Vec3Cross(side0, side1);
-
-        /* pretty sure this line is a no-op */
-        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
-        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
-        Vec3 normalizedNormal = Vec3Norm(normal);
-        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
-        
-        /* reject tris facing away from camera */
-        /* TODO: move this epsilon into a macro somewhere */
-        if (!(nDotLos > -0.001f)) continue;
-        v0 = MatVertMul(&cam->proj, v0);
-        v1 = MatVertMul(&cam->proj, v1);
-        v2 = MatVertMul(&cam->proj, v2);
- 
-        NGon result = TriClip_(v0, v1, v2);
-        TriCluster cluster = Triangulate_(result);
-
-        for (int j = 0; j < cluster.count; j++){
-            Vec4 v0 = cluster.tris[j].v0;
-            Vec4 v1 = cluster.tris[j].v1;
-            Vec4 v2 = cluster.tris[j].v2;
-    
-            v0.x /= v0.w;
-            v0.y /= v0.w;
-            v0.z /= v0.w;
-            v1.x /= v1.w;
-            v1.y /= v1.w;
-            v1.z /= v1.w;
-            v2.x /= v2.w;
-            v2.y /= v2.w;
-            v2.z /= v2.w;
-
-            Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
-            Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
-            Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
-        
-            DrawWireframeTri_(ndc0, ndc1, ndc2, db, fb);
-        }
-    }
-}
-
-void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c){
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c){
     assert(cam);
     assert(obj);
 
@@ -1059,119 +972,16 @@ void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c){
         TriCluster cluster = Triangulate_(result);
 
         for (int j = 0; j < cluster.count; j++){
-            Vec4 v0 = cluster.tris[j].v0;
-            Vec4 v1 = cluster.tris[j].v1;
-            Vec4 v2 = cluster.tris[j].v2;
+            Vec4 clip[] = { cluster.tris[j].v0, cluster.tris[j].v1,
+                            cluster.tris[j].v2 };
+
+            Vec3 ndc[3];
     
-            v0.x /= v0.w;
-            v0.y /= v0.w;
-            v0.z /= v0.w;
-            v1.x /= v1.w;
-            v1.y /= v1.w;
-            v1.z /= v1.w;
-            v2.x /= v2.w;
-            v2.y /= v2.w;
-            v2.z /= v2.w;
+            TransformTriClipNDC_(clip, ndc, cam);
 
-            Vec3 ndc0 = Vec3Make(v0.x, v0.y, v0.z);
-            Vec3 ndc1 = Vec3Make(v1.x, v1.y, v1.z);
-            Vec3 ndc2 = Vec3Make(v2.x, v2.y, v2.z);
-
-            Vec3 arr[] = { ndc0, ndc1, ndc2 };
-        
-            DrawWireframeTri_new(arr, c);
+            DrawWireframeTri_(ndc, c);
         }
     }
-}
-
-static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        DepthBuffer* db, Framebuffer* fb){
-    /* ndc -> floating point screen space for x and y */
-    int w = fb->w;
-    int h = fb->h;
-    ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
-    ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
-    ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
-    ndc1.y = (0.5f - ndc1.y * 0.5f) * h;
-    ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
-    ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
-    
-    DrawLineWu1_(ndc0, ndc1, db);
-    DrawLineWu1_(ndc1, ndc2, db);
-    DrawLineWu1_(ndc2, ndc0, db);
-}
-
-static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        int c){
-    /* ndc -> floating point screen space for x and y */
-    int w = renderer.framebuffer.w - 1;
-    int h = renderer.framebuffer.h - 1;
-
-    NdcValidationResult results[3];
-    Vec3 ndcs[3] = { ndc0, ndc1, ndc2 };
-    for (int i = 0; i < 3; i++){
-        results[i] = NdcValidate(ndcs[i].y);
-        if (results[i] != NDC_VALID){
-            float error = fmaxf(ndcs[i].y - 1.f, -1.f - ndcs[i].y);
-            LogLevel level;
-            switch(results[i]){
-            case NDC_PRECISION:{
-                level = LOG_PRECISION; 
-            } break;
-            case NDC_SUSPICIOUS:{
-                level = LOG_SUSPICIOUS;
-            } break;
-            case NDC_PATHOLOGICAL:{
-                level = LOG_PATHOLOGICAL;
-            } break;
-            default: level = LOG_INFO; break;
-            }
-            LogNDCValidation(level, ndcs[i].x, ndcs[i].y, ndcs[i].z, error);
-        }
-    }
-
-    /*
-    if (!(ndc0.y >= -1.f && ndc0.y <= 1.f)){
-        printf("ndc0.y: %8.5f before calculation\n", ndc0.y);
-        getchar();
-    }
-    if (!(ndc1.y >= -1.f && ndc1.y <= 1.f)){
-        printf("ndc1.y: %8.5f before calculation\n", ndc1.y);
-        getchar();
-    }
-    if (!(ndc2.y >= -1.f && ndc2.y <= 1.f)){
-        printf("ndc2.y: %8.5f before calculation\n", ndc2.y);
-        getchar();
-    }
-    */
-
-    ndc0.x = (ndc0.x * 0.5f + 0.5f) * w;
-    ndc0.y = (0.5f - ndc0.y * 0.5f) * h;
-    ndc1.x = (ndc1.x * 0.5f + 0.5f) * w;
-    ndc1.y = (0.5f - ndc1.y * 0.5f) * h;
-    ndc2.x = (ndc2.x * 0.5f + 0.5f) * w;
-    ndc2.y = (0.5f - ndc2.y * 0.5f) * h;
-
-    /*
-    if (!(ndc0.y >= 0.f && ndc0.y <= renderer.framebuffer.h)){
-        printf("ndc0.y: %8.5f after calculation\n", ndc0.y);
-        getchar();
-    }
-    if (!(ndc1.y >= 0.f && ndc1.y <= renderer.framebuffer.h)){
-        printf("ndc1.y: %8.5f after calculation\n", ndc1.y);
-        getchar();
-    }
-    if (!(ndc2.y >= 0.f && ndc2.y <= renderer.framebuffer.h)){
-        printf("ndc2.y: %8.5f after calculation\n", ndc2.y);
-        getchar();
-    }
-    */
-
-
-
-    DrawLineWu_Gamma(ndc0, ndc1, c);
-    DrawLineWu_Gamma(ndc1, ndc2, c);
-    DrawLineWu_Gamma(ndc2, ndc0, c);
 }
 
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
@@ -1727,7 +1537,6 @@ static inline NdcValidationResult NdcValidate(float f){
  * Output is guaranteed to be in domain 0.f to screen dimension - 1.f.
  * Depth is not changed. */
 static inline void TransformTriNDCFloatScreen_(Vec3* coords){
-    /*
     assert(coords[0].x >= -1.f); assert(coords[0].x <= 1.f);    
     assert(coords[0].y >= -1.f); assert(coords[0].y <= 1.f);    
     assert(coords[0].z >= -1.f); assert(coords[0].z <= 1.f);    
@@ -1737,7 +1546,6 @@ static inline void TransformTriNDCFloatScreen_(Vec3* coords){
     assert(coords[2].x >= -1.f); assert(coords[2].x <= 1.f);    
     assert(coords[2].y >= -1.f); assert(coords[2].y <= 1.f);    
     assert(coords[2].z >= -1.f); assert(coords[2].z <= 1.f);    
-    */
 
     int w = renderer.framebuffer.w - 1;
     int h = renderer.framebuffer.h - 1;
@@ -1756,7 +1564,41 @@ static inline void TransformTriNDCFloatScreen_(Vec3* coords){
     coords[2].y = fmaxf(0.f, fminf(h, coords[2].y));
 }
 
-static inline void DrawWireframeTri_new(Vec3* coords, int c){
+/* Assumes input has w >= near clip distance, i.e. is not clipping through
+ * near plane. That's not the only thing that's necessary, but it's the only
+ * thing we can catch easily with an assert.
+ * Output is guaranteed to be in the domain -1.f to +1.f.
+ * W component is consumed and no longer needed, so it's Vec3 from here until
+ * rasterization. */
+static inline void TransformTriClipNDC_(Vec4* clip, Vec3* ndc, Camera* cam){
+    /*
+    assert(clip[0].w >= cam->nearClip);
+    assert(clip[1].w >= cam->nearClip);
+    assert(clip[2].w >= cam->nearClip);
+    */
+
+    ndc[0].x = clip[0].x / clip[0].w; 
+    ndc[0].y = clip[0].y / clip[0].w; 
+    ndc[0].z = clip[0].z / clip[0].w; 
+    ndc[1].x = clip[1].x / clip[1].w; 
+    ndc[1].y = clip[1].y / clip[1].w; 
+    ndc[1].z = clip[1].z / clip[1].w; 
+    ndc[2].x = clip[2].x / clip[2].w; 
+    ndc[2].y = clip[2].y / clip[2].w; 
+    ndc[2].z = clip[2].z / clip[2].w; 
+
+    ndc[0].x = fmaxf(-1.f, fminf(1.f, ndc[0].x));
+    ndc[0].y = fmaxf(-1.f, fminf(1.f, ndc[0].y));
+    ndc[0].z = fmaxf(-1.f, fminf(1.f, ndc[0].z));
+    ndc[1].x = fmaxf(-1.f, fminf(1.f, ndc[1].x));
+    ndc[1].y = fmaxf(-1.f, fminf(1.f, ndc[1].y));
+    ndc[1].z = fmaxf(-1.f, fminf(1.f, ndc[1].z));
+    ndc[2].x = fmaxf(-1.f, fminf(1.f, ndc[2].x));
+    ndc[2].y = fmaxf(-1.f, fminf(1.f, ndc[2].y));
+    ndc[2].z = fmaxf(-1.f, fminf(1.f, ndc[2].z));
+}
+
+static inline void DrawWireframeTri_(Vec3* coords, int c){
     TransformTriNDCFloatScreen_(coords);      
     DrawLineWu_Gamma(coords[0], coords[1], c);
     DrawLineWu_Gamma(coords[1], coords[2], c);

@@ -97,14 +97,11 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
         float x0, float y0, float z0, float u0, float v0, float x1, float y1, float z1,
         float u1, float v1, float x2, float y2, float z2, float u2, float v2
         , ShadowMapper* sm, Vec4 sh0, Vec4 sh1, Vec4 sh2);
-static inline void DrawWireframeTri_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        DepthBuffer* db, Framebuffer* fb);
-static inline void DrawWireframeTriGamma_(Vec3 ndc0, Vec3 ndc1, Vec3 ndc2,
-        int c);
-static inline void DrawWireframeTri_new(Vec3* coords, int c);
+static inline void DrawWireframeTri_(Vec3* coords, int c);
 static inline NdcValidationResult NdcValidate(float f);
 /* Ready for prod? */
 static inline void TransformTriNDCFloatScreen_(Vec3* coords);
+static inline void TransformTriClipNDC_(Vec4* clip, Vec3* ndc, Camera* cam);
 
 
 
@@ -114,9 +111,7 @@ void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
-void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, Framebuffer* fb,
-        DepthBuffer* db);
-void Obj3DDrawWireframeGamma(Camera* cam, Obj3D* obj, int c);
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c);
 
 
 

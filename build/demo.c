@@ -116,8 +116,8 @@ void Render(){
     */
 
     ShadowMapperRender(&shadowMapper, &cube);
-    Obj3DDrawWireframeGamma(&cam, &sphere, RGBA_INT(64, 32, 96, 255));
-    Obj3DDrawWireframeGamma(&cam, &cube, RGBA_INT(96, 64, 32, 255));
+    Obj3DDrawWireframe(&cam, &sphere, RGBA_INT(64, 32, 96, 255));
+    Obj3DDrawWireframe(&cam, &cube, RGBA_INT(96, 64, 32, 255));
 }
 
 void debugCorner(char* str, Vec3 v){
