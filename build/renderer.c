@@ -910,80 +910,6 @@ void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light
     }
 }
 
-void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c){
-    assert(cam);
-    assert(obj);
-
-    int triCount = obj->model->mesh->indexCount / 9;
-
-    Mat4 mModelView = MatMatMul(&cam->view, &obj->matModel);
-    
-    for (int i = 0; i < triCount; i++){
-        /* get indices in format pos/pos/pos/tex/tex/tex/normal/normal/normal */
-        /* we are pulling out stuff that we don't need, but that's just because
-         * I don't feel like making a version of GetTriIndices and GetVertex 
-         * that only get the positions, because it would only be used for 
-         * wireframe/debugging */
-        int i0, i1, i2, i3, i4, i5, i6, i7, i8;
-        GetTriIndices(obj->model->mesh, i, &i0, &i1, &i2, &i3, &i4, &i5, &i6,
-                &i7, &i8);
-
-        /* use indices to get data */ 
-        Vec4 v0, v1, v2, n0, n1, n2;
-        float tu0, tv0, tu1, tv1, tu2, tv2;
-
-        GetVertex(obj->model->mesh, i0, i3, i6, &v0, &tu0, &tv0, &n0);
-        GetVertex(obj->model->mesh, i1, i4, i7, &v1, &tu1, &tv1, &n1);
-        GetVertex(obj->model->mesh, i2, i5, i8, &v2, &tu2, &tv2, &n2);
-        
-        v0 = MatVertMul(&obj->matModel, v0);
-        v1 = MatVertMul(&obj->matModel, v1);
-        v2 = MatVertMul(&obj->matModel, v2);
-        v0 = MatVertMul(&cam->view, v0);
-        v1 = MatVertMul(&cam->view, v1);
-        v2 = MatVertMul(&cam->view, v2);
-
-        /* calculate tri normal, faster than transforming the existing normals
-         * stored in the model, and you only need one normal for backface
-         * culling and flat shading. For gouraud/phong, transform the
-         * per-vertex normals */
-        Vec3 v0_ = Vec3Make(v0.x, v0.y, v0.z);
-        Vec3 v1_ = Vec3Make(v1.x, v1.y, v1.z);
-        Vec3 v2_ = Vec3Make(v2.x, v2.y, v2.z);
-        Vec3 side0 = Vec3Sub(v1_, v0_);
-        Vec3 side1 = Vec3Sub(v2_, v0_);
-        Vec3 normal = Vec3Cross(side0, side1);
-
-        /* pretty sure this line is a no-op */
-        Vec3 los = Vec3Sub(v0_, Vec3Make(0.f, 0.f, 0.f));
-        Vec3 invLos = Vec3Make(-los.x, -los.y, -los.z);
-        Vec3 normalizedNormal = Vec3Norm(normal);
-        float nDotLos = Vec3Dot(Vec3Norm(invLos), normalizedNormal);
-        
-        /* reject tris facing away from camera */
-        /* TODO: move this epsilon into a macro somewhere */
-        if (renderer.enableCulling)
-            if (!(nDotLos > -0.001f)) continue;
-        v0 = MatVertMul(&cam->proj, v0);
-        v1 = MatVertMul(&cam->proj, v1);
-        v2 = MatVertMul(&cam->proj, v2);
- 
-        NGon result = TriClip_(v0, v1, v2);
-        TriCluster cluster = Triangulate_(result);
-
-        for (int j = 0; j < cluster.count; j++){
-            Vec4 clip[] = { cluster.tris[j].v0, cluster.tris[j].v1,
-                            cluster.tris[j].v2 };
-
-            Vec3 ndc[3];
-    
-            TransformTriClipNDC_(clip, ndc, cam);
-
-            DrawWireframeTri_(ndc, c);
-        }
-    }
-}
-
 static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
     int c = RGBA_INT(192, 64, 64, 255);
 
@@ -1490,8 +1416,8 @@ static inline NGon TriClip_(Vec4 v0, Vec4 v1, Vec4 v2){
     return ngon;
 }
 
-static inline TriCluster Triangulate_(NGon ngon){
-    TriCluster result;
+static inline Tri4Cluster Triangulate_(NGon ngon){
+    Tri4Cluster result;
     result.count = 0;
 
     if (ngon.vertCount < 3) return result;
@@ -1536,32 +1462,32 @@ static inline NdcValidationResult NdcValidate(float f){
 /* Assumes input is in domain -1.f to +1.f.
  * Output is guaranteed to be in domain 0.f to screen dimension - 1.f.
  * Depth is not changed. */
-static inline void TransformTriNDCFloatScreen_(Vec3* coords){
-    assert(coords[0].x >= -1.f); assert(coords[0].x <= 1.f);    
-    assert(coords[0].y >= -1.f); assert(coords[0].y <= 1.f);    
-    assert(coords[0].z >= -1.f); assert(coords[0].z <= 1.f);    
-    assert(coords[1].x >= -1.f); assert(coords[1].x <= 1.f);    
-    assert(coords[1].y >= -1.f); assert(coords[1].y <= 1.f);    
-    assert(coords[1].z >= -1.f); assert(coords[1].z <= 1.f);    
-    assert(coords[2].x >= -1.f); assert(coords[2].x <= 1.f);    
-    assert(coords[2].y >= -1.f); assert(coords[2].y <= 1.f);    
-    assert(coords[2].z >= -1.f); assert(coords[2].z <= 1.f);    
+static inline void TransformTriNDCFloatScreen_(Tri3* tri){
+    assert(tri->v0.x >= -1.f); assert(tri->v0.x <= 1.f);    
+    assert(tri->v0.y >= -1.f); assert(tri->v0.y <= 1.f);    
+    assert(tri->v0.z >= -1.f); assert(tri->v0.z <= 1.f);    
+    assert(tri->v1.x >= -1.f); assert(tri->v1.x <= 1.f);    
+    assert(tri->v1.y >= -1.f); assert(tri->v1.y <= 1.f);    
+    assert(tri->v1.z >= -1.f); assert(tri->v1.z <= 1.f);    
+    assert(tri->v2.x >= -1.f); assert(tri->v2.x <= 1.f);    
+    assert(tri->v2.y >= -1.f); assert(tri->v2.y <= 1.f);    
+    assert(tri->v2.z >= -1.f); assert(tri->v2.z <= 1.f);    
 
     int w = renderer.framebuffer.w - 1;
     int h = renderer.framebuffer.h - 1;
-    coords[0].x = (coords[0].x * 0.5f + 0.5f) * w;
-    coords[1].x = (coords[1].x * 0.5f + 0.5f) * w;
-    coords[2].x = (coords[2].x * 0.5f + 0.5f) * w;
-    coords[0].y = (0.5f - coords[0].y * 0.5f) * h;
-    coords[1].y = (0.5f - coords[1].y * 0.5f) * h;
-    coords[2].y = (0.5f - coords[2].y * 0.5f) * h;
+    tri->v0.x = (tri->v0.x * 0.5f + 0.5f) * w;
+    tri->v1.x = (tri->v1.x * 0.5f + 0.5f) * w;
+    tri->v2.x = (tri->v2.x * 0.5f + 0.5f) * w;
+    tri->v0.y = (0.5f - tri->v0.y * 0.5f) * h;
+    tri->v1.y = (0.5f - tri->v1.y * 0.5f) * h;
+    tri->v2.y = (0.5f - tri->v2.y * 0.5f) * h;
 
-    coords[0].x = fmaxf(0.f, fminf(w, coords[0].x));
-    coords[1].x = fmaxf(0.f, fminf(w, coords[1].x));
-    coords[2].x = fmaxf(0.f, fminf(w, coords[2].x));
-    coords[0].y = fmaxf(0.f, fminf(h, coords[0].y));
-    coords[1].y = fmaxf(0.f, fminf(h, coords[1].y));
-    coords[2].y = fmaxf(0.f, fminf(h, coords[2].y));
+    tri->v0.x = fmaxf(0.f, fminf(w, tri->v0.x));
+    tri->v1.x = fmaxf(0.f, fminf(w, tri->v1.x));
+    tri->v2.x = fmaxf(0.f, fminf(w, tri->v2.x));
+    tri->v0.y = fmaxf(0.f, fminf(h, tri->v0.y));
+    tri->v1.y = fmaxf(0.f, fminf(h, tri->v1.y));
+    tri->v2.y = fmaxf(0.f, fminf(h, tri->v2.y));
 }
 
 /* Assumes input has w >= near clip distance, i.e. is not clipping through
@@ -1570,37 +1496,122 @@ static inline void TransformTriNDCFloatScreen_(Vec3* coords){
  * Output is guaranteed to be in the domain -1.f to +1.f.
  * W component is consumed and no longer needed, so it's Vec3 from here until
  * rasterization. */
-static inline void TransformTriClipNDC_(Vec4* clip, Vec3* ndc, Camera* cam){
+static inline void TransformTri4ClipNDC_(Tri4* clip, Tri3* ndc, Camera* cam){
     /*
     assert(clip[0].w >= cam->nearClip);
     assert(clip[1].w >= cam->nearClip);
     assert(clip[2].w >= cam->nearClip);
     */
 
-    ndc[0].x = clip[0].x / clip[0].w; 
-    ndc[0].y = clip[0].y / clip[0].w; 
-    ndc[0].z = clip[0].z / clip[0].w; 
-    ndc[1].x = clip[1].x / clip[1].w; 
-    ndc[1].y = clip[1].y / clip[1].w; 
-    ndc[1].z = clip[1].z / clip[1].w; 
-    ndc[2].x = clip[2].x / clip[2].w; 
-    ndc[2].y = clip[2].y / clip[2].w; 
-    ndc[2].z = clip[2].z / clip[2].w; 
+    ndc->v0.x = clip->v0.x / clip->v0.w; 
+    ndc->v0.y = clip->v0.y / clip->v0.w; 
+    ndc->v0.z = clip->v0.z / clip->v0.w; 
+    ndc->v1.x = clip->v1.x / clip->v1.w; 
+    ndc->v1.y = clip->v1.y / clip->v1.w; 
+    ndc->v1.z = clip->v1.z / clip->v1.w; 
+    ndc->v2.x = clip->v2.x / clip->v2.w; 
+    ndc->v2.y = clip->v2.y / clip->v2.w; 
+    ndc->v2.z = clip->v2.z / clip->v2.w; 
 
-    ndc[0].x = fmaxf(-1.f, fminf(1.f, ndc[0].x));
-    ndc[0].y = fmaxf(-1.f, fminf(1.f, ndc[0].y));
-    ndc[0].z = fmaxf(-1.f, fminf(1.f, ndc[0].z));
-    ndc[1].x = fmaxf(-1.f, fminf(1.f, ndc[1].x));
-    ndc[1].y = fmaxf(-1.f, fminf(1.f, ndc[1].y));
-    ndc[1].z = fmaxf(-1.f, fminf(1.f, ndc[1].z));
-    ndc[2].x = fmaxf(-1.f, fminf(1.f, ndc[2].x));
-    ndc[2].y = fmaxf(-1.f, fminf(1.f, ndc[2].y));
-    ndc[2].z = fmaxf(-1.f, fminf(1.f, ndc[2].z));
+    ndc->v0.x = fmaxf(-1.f, fminf(1.f, ndc->v0.x));
+    ndc->v0.y = fmaxf(-1.f, fminf(1.f, ndc->v0.y));
+    ndc->v0.z = fmaxf(-1.f, fminf(1.f, ndc->v0.z));
+    ndc->v1.x = fmaxf(-1.f, fminf(1.f, ndc->v1.x));
+    ndc->v1.y = fmaxf(-1.f, fminf(1.f, ndc->v1.y));
+    ndc->v1.z = fmaxf(-1.f, fminf(1.f, ndc->v1.z));
+    ndc->v2.x = fmaxf(-1.f, fminf(1.f, ndc->v2.x));
+    ndc->v2.y = fmaxf(-1.f, fminf(1.f, ndc->v2.y));
+    ndc->v2.z = fmaxf(-1.f, fminf(1.f, ndc->v2.z));
 }
 
-static inline void DrawWireframeTri_(Vec3* coords, int c){
-    TransformTriNDCFloatScreen_(coords);      
-    DrawLineWu_Gamma(coords[0], coords[1], c);
-    DrawLineWu_Gamma(coords[1], coords[2], c);
-    DrawLineWu_Gamma(coords[2], coords[0], c);
+static inline void DrawWireframeTri_(Tri3* tri, int c){
+    TransformTriNDCFloatScreen_(tri);      
+    DrawLineWu_Gamma(tri->v0, tri->v1, c);
+    DrawLineWu_Gamma(tri->v1, tri->v2, c);
+    DrawLineWu_Gamma(tri->v2, tri->v0, c);
+}
+
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c){
+    assert(cam); assert(obj);
+
+    Mat4 matModelView = MatMatMul(&cam->view, &obj->matModel);
+    
+    for (int i = 0; i < obj->model->plymesh.triCount; i++){
+        PLY_Triangle tri = PLYGetTriangle(&obj->model->plymesh, i); 
+        /* Convert pos to Vec4 for matrix multiplication.
+         * Rest of per-vertex attributes are not needed for wireframe. */
+        Vec4 v0 = Vec4Make(tri.v0.pos.x, tri.v0.pos.y, tri.v0.pos.z, 1.f);
+        Vec4 v1 = Vec4Make(tri.v1.pos.x, tri.v1.pos.y, tri.v1.pos.z, 1.f);
+        Vec4 v2 = Vec4Make(tri.v2.pos.x, tri.v2.pos.y, tri.v2.pos.z, 1.f);
+        
+        /* transform model -> world -> view */
+        v0 = MatVertMul(&matModelView, v0);
+        v1 = MatVertMul(&matModelView, v1);
+        v2 = MatVertMul(&matModelView, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 side0 = Vec3Make(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+        Vec3 side1 = Vec3Make(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+        Vec3 normal = Vec3Norm(Vec3Cross(side0, side1));
+        float nDotCam = Vec3Dot(normal, Vec3Norm(Vec3Make(-v0.x, -v0.y, -v0.z)));
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (renderer.enableCulling)
+            if (nDotCam <= -0.001f) continue;
+        /* transform into clip space */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+        /* clip the triangle against the view frustum */
+        NGon result = TriClip_(v0, v1, v2);
+        /* triangulate */
+        Tri4Cluster cluster = Triangulate_(result);
+
+        for (int j = 0; j < cluster.count; j++) {
+            Tri3 ndc;
+             /* transform from clip -> NDC */
+            TransformTri4ClipNDC_(&cluster.tris[j], &ndc, cam);
+
+            DrawSolidColorTri_(&ndc, c);
+        }
+    }
+}
+
+/* input triangle must be in NDC */
+static inline void DrawSolidColorTri_(Tri3* tri, int c){
+    TransformTriNDCFloatScreen_(tri);      
+    int minX = (int)floorf  (fminf(fminf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int maxX = (int)ceilf   (fmaxf(fmaxf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int minY = (int)floorf  (fminf(fminf(tri->v0.y, tri->v1.y), tri->v2.y));
+    int maxY = (int)ceilf   (fmaxf(fmaxf(tri->v0.y, tri->v1.y), tri->v2.y));
+
+    float denom = ((tri->v1.y - tri->v2.y) * (tri->v0.x - tri->v2.x) +
+                   (tri->v2.x - tri->v1.x) * (tri->v0.y - tri->v2.y));
+    if (denom == 0.f) return; /* Degenerate triangle */
+
+    float invDen = 1.f / denom;
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            /* Barycentric weights (affine) */
+            float l0 = ((tri->v1.y - tri->v2.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v2.x - tri->v1.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l1 = ((tri->v2.y - tri->v0.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v0.x - tri->v2.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l2 = 1.f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < -1e-6f || l1 < -1e-6f || l2 < -1e-6f) continue;
+
+            float depth = l0 * tri->v0.z + l1 * tri->v1.z + l2 * tri->v2.z;
+
+            if (!DepthBufferTestWrite(&renderer.db, x, y, depth)) continue;
+
+            PutPixel(x, y, c);
+        }
+    }
 }

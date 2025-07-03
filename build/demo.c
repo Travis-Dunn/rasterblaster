@@ -13,17 +13,20 @@
 #include "event.h"
 #include "input.h"
 #include "logger.h"
+#include "plyfile.h"
 
 static Model model;
 static Model groundModel;
 static Model rscHouseModel;
 static Model cubeModel;
 static Model sphereModel;
+static Model plyCubeModel;
 static Obj3D carp;
 static Obj3D ground;
 static Obj3D rscHouse;
 static Obj3D cube;
 static Obj3D sphere;
+static Obj3D plyCube;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
@@ -68,6 +71,11 @@ void Init(){
     rscHouseModel.mesh = loadOBJ("models/rsc house.obj");
     rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
     sphereModel.mesh = loadOBJ("models/sphere.obj");
+    int result = PLYLoadFile("models/cube.ply", &plyCubeModel.plymesh);
+    if (result != 0) {
+        printf("%d\n", result);
+        getchar();
+    }
     sphereModel.tex = 0;
     cubeModel.mesh = loadOBJ("models/cube.obj");
     cubeModel.tex = 0;
@@ -91,6 +99,10 @@ void Init(){
     sphere.scale = Vec3Make(1.f, 1.f, 1.f);
     sphere.rot = Vec3Make(0.f, 0.f, 0.f);
     sphere.pos = Vec3Make(0.f, 0.f, 0.f);
+    plyCube.model = &plyCubeModel;
+    plyCube.scale = Vec3Make(1.f, 1.f, 1.f);
+    plyCube.rot = Vec3Make(0.f, 0.f, 3.f);
+    plyCube.pos = Vec3Make(0.f, 0.f, -5.f);
     carp.id = 12;
     ground.id = 11;
     ShadowMapperUpdate(&shadowMapper);
@@ -115,9 +127,10 @@ void Render(){
     cube.rot.z += 0.1f * timer.dt;
     */
 
+    /*
     ShadowMapperRender(&shadowMapper, &cube);
-    Obj3DDrawWireframe(&cam, &sphere, RGBA_INT(64, 32, 96, 255));
-    Obj3DDrawWireframe(&cam, &cube, RGBA_INT(96, 64, 32, 255));
+    */
+    Obj3DDrawWireframe(&cam, &plyCube, RGBA_INT(16, 32, 96, 255));
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -143,7 +156,10 @@ void Update(){
     UpdateObj3DModelMatrix(&carp);
     UpdateObj3DModelMatrix(&ground);
     UpdateObj3DModelMatrix(&rscHouse);
+    /*
     UpdateObj3DModelMatrix(&cube);
+    */
+    UpdateObj3DModelMatrix(&plyCube);
     UpdateObj3DModelMatrix(&sphere);
 
     Event evt;

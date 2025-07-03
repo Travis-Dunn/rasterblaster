@@ -7,6 +7,13 @@
 #define FRADS(D)    ((D) * PI / 180.f)
 #define FDEGS(R)    ((R) * 180.f / PI)
 
+
+/*********************************    Vec2    *********************************/
+
+typedef struct { float s, t; } Vec2;
+static inline Vec2 Vec2Make_    (float s, float t);
+Vec2 Vec2Make                   (float s, float t);
+
 /*********************************    Vec3    *********************************/
 
 typedef struct { float x, y, z; } Vec3;

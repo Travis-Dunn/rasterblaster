@@ -46,13 +46,17 @@ typedef struct {
 } NGon;
 
 typedef struct {
-    Vec4 v0, v1, v2;
-} Tri;
+    Vec3 v0, v1, v2;
+} Tri3;
 
 typedef struct {
-    Tri tris[6];
+    Vec4 v0, v1, v2;
+} Tri4;
+
+typedef struct {
+    Tri4 tris[6];
     int count;
-} TriCluster;
+} Tri4Cluster;
 
 extern Renderer renderer;
 
@@ -97,23 +101,24 @@ static inline void TexturedLambertShadowFloatTri_(Texture* t, Vec3 la, int id,
         float x0, float y0, float z0, float u0, float v0, float x1, float y1, float z1,
         float u1, float v1, float x2, float y2, float z2, float u2, float v2
         , ShadowMapper* sm, Vec4 sh0, Vec4 sh1, Vec4 sh2);
-static inline void DrawWireframeTri_(Vec3* coords, int c);
 static inline NdcValidationResult NdcValidate(float f);
-/* Ready for prod? */
-static inline void TransformTriNDCFloatScreen_(Vec3* coords);
-static inline void TransformTriClipNDC_(Vec4* clip, Vec3* ndc, Camera* cam);
+/* Transformations - Ready for prod? */
+static inline void TransformTriNDCFloatScreen_(Tri3* coords);
+static inline void TransformTriClipNDC_(Tri4* clip, Tri3* ndc, Camera* cam);
+
+/* Triangles */
+static inline void DrawWireframeTri_(Tri3* tri, int c);
+static inline void DrawSolidColorTri_(Tri3* tri, int c);
 
 
-
+/* Render object */
+void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c);
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db);
 void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
 void DrawObj3DLambertShadowFloat(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db, ShadowMapper* sm);
-void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c);
-
-
 
 /* 8 bit gamma correction LUT */
 void                        GammaLUTInit(unsigned char* lut);
@@ -123,7 +128,7 @@ static inline int           PointInsidePlane_   (Vec4 point, int plane);
 static inline Vec4          LinePlaneIntersect_ (Vec4 a, Vec4 b, int plane);
 static inline NGon          TriPlaneClip_       (NGon input, int plane);
 static inline NGon          TriClip_            (Vec4 v0, Vec4 v1, Vec4 v2);
-static inline TriCluster    Triangulate_        (NGon ngon);
+static inline Tri4Cluster   Triangulate_        (NGon ngon);
 
 /* Used for rendering off screen buffers such as the depth buffer */
 void VisualizeBuffer(void* buf, int w, int h, char* type);
