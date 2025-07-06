@@ -7,7 +7,7 @@ typedef struct {
     Vec3 pos;
     Vec3 normal;
     Vec2 texCoord;
-    Vec3 color;
+    int color;
 } PLY_Vertex;
 
 typedef struct {

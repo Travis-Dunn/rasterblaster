@@ -41,11 +41,6 @@ typedef enum {
 } NdcValidationResult;
 
 typedef struct {
-    Vec4 verts[8];
-    int vertCount;
-} NGon;
-
-typedef struct {
     Vec3 v0, v1, v2;
 } Tri3;
 
@@ -53,10 +48,35 @@ typedef struct {
     Vec4 v0, v1, v2;
 } Tri4;
 
+/* clipping */
+typedef struct {
+    Vec4 verts[8];
+    int vertCount;
+} NGon;
+
 typedef struct {
     Tri4 tris[6];
     int count;
 } Tri4Cluster;
+
+typedef struct {
+    Vec4 pos;
+    int color;
+} VertexColorVert;
+
+typedef struct {
+    VertexColorVert v0, v1, v2;
+} VertexColorTri;
+
+typedef struct {
+    VertexColorVert verts[8];
+    int vertCount;
+} VertexColorNGon;
+
+typedef struct {
+    VertexColorTri tris[6];
+    int count;
+} VertexColorTriCluster;
 
 extern Renderer renderer;
 
@@ -109,10 +129,12 @@ static inline void TransformTriClipNDC_(Tri4* clip, Tri3* ndc, Camera* cam);
 /* Triangles */
 static inline void DrawWireframeTri_(Tri3* tri, int c);
 static inline void DrawSolidColorTri_(Tri3* tri, int c);
+static inline void DrawVertexColorTri_(Tri3* tri, int c[3]);
 
 
 /* Render object */
 void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c);
+void Obj3DDrawVertexColor(Camera* cam, Obj3D* obj);
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db);
 void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
@@ -129,6 +151,16 @@ static inline Vec4          LinePlaneIntersect_ (Vec4 a, Vec4 b, int plane);
 static inline NGon          TriPlaneClip_       (NGon input, int plane);
 static inline NGon          TriClip_            (Vec4 v0, Vec4 v1, Vec4 v2);
 static inline Tri4Cluster   Triangulate_        (NGon ngon);
+
+static inline VertexColorNGon VertexColorTriClip_(VertexColorVert verts[3]);
+static inline VertexColorNGon VertexColorTriPlaneClip_(VertexColorNGon input,
+        int plane);
+static inline VertexColorVert VertexColorLinePlaneIntersect_
+        (VertexColorVert a, VertexColorVert b, int plane);
+static inline VertexColorVert VertexColorVertLerp_(VertexColorVert a,
+        VertexColorVert b, float t);
+static inline VertexColorTriCluster VertexColorTriangulate_
+        (VertexColorNGon ngon);
 
 /* Used for rendering off screen buffers such as the depth buffer */
 void VisualizeBuffer(void* buf, int w, int h, char* type);

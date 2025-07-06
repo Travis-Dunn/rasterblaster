@@ -1440,6 +1440,142 @@ static inline Tri4Cluster Triangulate_(NGon ngon){
     return result;
 }
 
+static inline VertexColorNGon VertexColorTriClip_(VertexColorVert verts[3]){
+    VertexColorNGon ngon;
+    ngon.verts[0] = verts[0];
+    ngon.verts[1] = verts[1];
+    ngon.verts[2] = verts[2];
+    ngon.vertCount = 3;
+
+    for (int plane = 0; plane < 6; plane++) {
+        ngon = VertexColorTriPlaneClip_(ngon, plane);
+
+        if (ngon.vertCount == 0) break;
+    }
+    return ngon;
+}
+
+static inline VertexColorTriCluster VertexColorTriangulate_
+        (VertexColorNGon ngon) {
+    VertexColorTriCluster result;
+    result.count = 0;
+
+    if (ngon.vertCount < 3) return result;
+
+    if (ngon.vertCount == 3) {
+        result.tris[0].v0 = ngon.verts[0];
+        result.tris[0].v1 = ngon.verts[1];
+        result.tris[0].v2 = ngon.verts[2];
+        result.count = 1;
+        return result;
+    }
+
+    VertexColorVert pivot = ngon.verts[0];
+    for (int i = 1; i < ngon.vertCount - 1; i++) {
+        result.tris[result.count].v0 = pivot;
+        result.tris[result.count].v1 = ngon.verts[i];
+        result.tris[result.count].v2 = ngon.verts[i + 1];
+        result.count++;
+    }
+    return result;
+}
+
+
+
+static inline VertexColorNGon VertexColorTriPlaneClip_(VertexColorNGon input,
+        int plane) {
+    VertexColorNGon output;
+    output.vertCount = 0;
+
+    if (input.vertCount == 0) return output;
+    VertexColorVert prev_vert = input.verts[input.vertCount - 1];
+    int prev_inside = PointInsidePlane_(prev_vert.pos, plane);
+
+    for (int i = 0; i < input.vertCount; i++){
+        if (output.vertCount >= 7){
+            /* TODO: logging */
+            break;
+        }
+        VertexColorVert curr_vert = input.verts[i];
+        int curr_inside = PointInsidePlane_(curr_vert.pos, plane);
+
+        if (curr_inside) {
+            if (!prev_inside && output.vertCount < 7){
+                output.verts[output.vertCount++] =
+                    VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+            }
+            if (output.vertCount < 8)
+                output.verts[output.vertCount++] = curr_vert;
+        } else if (prev_inside && output.vertCount < 8) {
+            output.verts[output.vertCount++] =
+                VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+        }
+        prev_vert = curr_vert;
+        prev_inside = curr_inside;
+    }
+    return output;
+}
+
+static inline VertexColorVert VertexColorLinePlaneIntersect_
+        (VertexColorVert a, VertexColorVert b, int plane) {
+    assert(plane >= 0 && plane < 6);
+    float t, denom;
+    switch(plane) {
+        case 0: /* left */ {
+            if (fabsf(denom = (b.pos.x - a.pos.x) + (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (-a.pos.w - a.pos.x) / denom;
+        } break;
+        case 1: /* right */ {
+            if (fabsf(denom = (b.pos.x - a.pos.x) - (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (a.pos.w - a.pos.x) / denom;
+        } break;
+        case 2: /* bottom */ {
+            if (fabsf(denom = (b.pos.y - a.pos.y) + (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (-a.pos.w - a.pos.y) / denom;
+        } break;
+        case 3: /* top */ {
+            if (fabsf(denom = (b.pos.y - a.pos.y) - (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (a.pos.w - a.pos.y) / denom;
+        } break;  
+        case 4: /* near */ {
+            if (fabsf(denom = (b.pos.z - a.pos.z) + (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (-a.pos.w - a.pos.z) / denom;
+        } break;
+        case 5: /* far */ {
+            if (fabsf(denom = (b.pos.z - a.pos.z) - (b.pos.w - a.pos.w))
+                    < 1e-6f) return a;
+            t = (a.pos.w - a.pos.z) / denom;
+        } break;
+    }
+    return VertexColorVertLerp_(a, b, t);
+}
+
+static inline VertexColorVert VertexColorVertLerp_(VertexColorVert a,
+        VertexColorVert b, float t) {
+    VertexColorVert result;
+    result.pos = Vec4Lerp(a.pos, b.pos, t);
+    unsigned char ar = GETR(a.color);
+    unsigned char ag = GETG(a.color);
+    unsigned char ab = GETB(a.color);
+    unsigned char aa = GETA(a.color);
+    unsigned char br = GETR(b.color);
+    unsigned char bg = GETG(b.color);
+    unsigned char bb = GETB(b.color);
+    unsigned char ba = GETA(b.color);
+    int ti = (int)(t * 256.f);
+    unsigned char rr = (unsigned char)(ar + (((br - ar) * ti) >> 8));
+    unsigned char rg = (unsigned char)(ag + (((bg - ag) * ti) >> 8));
+    unsigned char rb = (unsigned char)(ab + (((bb - ab) * ti) >> 8));
+    unsigned char ra = (unsigned char)(aa + (((ba - aa) * ti) >> 8));
+    result.color = RGBA_INT(rr, rg, rb, ra);
+    return result;
+}
+
 /* Assumes that the table is large enough! If it's not, corrupt stack */
 void GammaLUTInit(unsigned char* lut){
     for (int i = 0; i < 256; i++){
@@ -1577,7 +1713,7 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c){
              /* transform from clip -> NDC */
             TransformTri4ClipNDC_(&cluster.tris[j], &ndc, cam);
 
-            DrawSolidColorTri_(&ndc, c);
+            DrawWireframeTri_(&ndc, c);
         }
     }
 }
@@ -1612,6 +1748,124 @@ static inline void DrawSolidColorTri_(Tri3* tri, int c){
             if (!DepthBufferTestWrite(&renderer.db, x, y, depth)) continue;
 
             PutPixel(x, y, c);
+        }
+    }
+}
+
+void Obj3DDrawVertexColor(Camera* cam, Obj3D* obj){
+    assert(cam); assert(obj);
+
+    Mat4 matModelView = MatMatMul(&cam->view, &obj->matModel);
+    
+    for (int i = 0; i < obj->model->plymesh.triCount; i++){
+        PLY_Triangle tri = PLYGetTriangle(&obj->model->plymesh, i); 
+        /* Convert pos to Vec4 for matrix multiplication.
+         * Get Vertex colors, which are the only per-vertex attrib we need */
+        Vec4 v0 = Vec4Make(tri.v0.pos.x, tri.v0.pos.y, tri.v0.pos.z, 1.f);
+        Vec4 v1 = Vec4Make(tri.v1.pos.x, tri.v1.pos.y, tri.v1.pos.z, 1.f);
+        Vec4 v2 = Vec4Make(tri.v2.pos.x, tri.v2.pos.y, tri.v2.pos.z, 1.f);
+        int c0 = tri.v0.color; int c1 = tri.v1.color; int c2 = tri.v2.color;
+        
+        /* transform model -> world -> view */
+        v0 = MatVertMul(&matModelView, v0);
+        v1 = MatVertMul(&matModelView, v1);
+        v2 = MatVertMul(&matModelView, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 side0 = Vec3Make(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+        Vec3 side1 = Vec3Make(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+        Vec3 normal = Vec3Norm(Vec3Cross(side0, side1));
+        float nDotCam = Vec3Dot(normal, Vec3Norm(Vec3Make(-v0.x, -v0.y, -v0.z)));
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (renderer.enableCulling)
+            if (nDotCam <= -0.001f) continue;
+        /* transform into clip space */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+        /* clip the triangle against the view frustum */
+        /* uses  a version of clipping code specifically for vertex coloring */
+        VertexColorVert vert0 = { v0, c0 };
+        VertexColorVert vert1 = { v1, c1 };
+        VertexColorVert vert2 = { v2, c2 };
+        VertexColorVert verts[3] = { vert0, vert1, vert2 };
+        VertexColorNGon result = VertexColorTriClip_(&verts[0]);
+        /* triangulate */
+        VertexColorTriCluster cluster = VertexColorTriangulate_(result);
+
+        for (int j = 0; j < cluster.count; j++) {
+            Tri3 ndc;
+             /* transform from clip -> NDC */
+            Tri4 pos4;
+            int colors[3];
+            pos4.v0 = cluster.tris[j].v0.pos;
+            colors[0] = cluster.tris[j].v0.color;
+            pos4.v1 = cluster.tris[j].v1.pos;
+            colors[1] = cluster.tris[j].v1.color;
+            pos4.v2 = cluster.tris[j].v2.pos;
+            colors[2] = cluster.tris[j].v2.color;
+            TransformTri4ClipNDC_(&pos4, &ndc, cam);
+
+            DrawVertexColorTri_(&ndc, &colors[0]);
+        }
+    }
+}
+
+static inline void DrawVertexColorTri_(Tri3* tri, int c[3]){
+    TransformTriNDCFloatScreen_(tri);      
+    int minX = (int)floorf  (fminf(fminf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int maxX = (int)ceilf   (fmaxf(fmaxf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int minY = (int)floorf  (fminf(fminf(tri->v0.y, tri->v1.y), tri->v2.y));
+    int maxY = (int)ceilf   (fmaxf(fmaxf(tri->v0.y, tri->v1.y), tri->v2.y));
+
+    float denom = ((tri->v1.y - tri->v2.y) * (tri->v0.x - tri->v2.x) +
+                   (tri->v2.x - tri->v1.x) * (tri->v0.y - tri->v2.y));
+    if (denom == 0.f) return; /* Degenerate triangle */
+
+    float invDen = 1.f / denom;
+
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            /* Barycentric weights (affine) */
+            float l0 = ((tri->v1.y - tri->v2.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v2.x - tri->v1.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l1 = ((tri->v2.y - tri->v0.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v0.x - tri->v2.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l2 = 1.f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < -1e-6f || l1 < -1e-6f || l2 < -1e-6f) continue;
+
+            float depth = l0 * tri->v0.z + l1 * tri->v1.z + l2 * tri->v2.z;
+
+            if (!DepthBufferTestWrite(&renderer.db, x, y, depth)) continue;
+
+            /* interpolate vertex color */
+            float r0 = (float)GETR(c[0]);
+            float g0 = (float)GETG(c[0]);
+            float b0 = (float)GETB(c[0]);
+            float a0 = (float)GETA(c[0]);
+            float r1 = (float)GETR(c[1]);
+            float g1 = (float)GETG(c[1]);
+            float b1 = (float)GETB(c[1]);
+            float a1 = (float)GETA(c[1]);
+            float r2 = (float)GETR(c[2]);
+            float g2 = (float)GETG(c[2]);
+            float b2 = (float)GETB(c[2]);
+            float a2 = (float)GETA(c[2]);
+            unsigned char rr = (unsigned char)(l0 * r0 + l1 * r1 + l2 * r2);
+            unsigned char rg = (unsigned char)(l0 * g0 + l1 * g1 + l2 * g2);
+            unsigned char rb = (unsigned char)(l0 * b0 + l1 * b1 + l2 * b2);
+            unsigned char ra = (unsigned char)(l0 * a0 + l1 * a1 + l2 * a2);
+            int color = RGBA_INT(rr, rg, rb, ra);
+
+            PutPixel(x, y, color);
         }
     }
 }

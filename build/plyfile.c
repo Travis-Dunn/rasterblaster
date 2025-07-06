@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "assert.h"
 #include "plyfile.h"
+#include "renderer.h"
 
 int PLYLoadFile(char* filename, PLY_Mesh* mesh){
     assert(filename); /* assert(mesh); */
@@ -61,9 +62,10 @@ int PLYLoadFile(char* filename, PLY_Mesh* mesh){
             return 5; /* unexpected OEF */
         }
 
-        float x, y, z, nx, ny, nz, s, t, r, g, b;
-        int parsed = sscanf(line, "%f %f %f %f %f %f %f %f %f %f %f",
-                &x, &y, &z, &nx, &ny, &nz, &s, &t, &r, &g, &b);
+        float x, y, z, nx, ny, nz, s, t;
+        unsigned int r, g, b, a;
+        int parsed = sscanf(line, "%f %f %f %f %f %f %u %u %u %u %f %f",
+                &x, &y, &z, &nx, &ny, &nz, &r, &g, &b, &a, &s, &t);
         if (parsed < 3) {
             free(vertices);
             fclose(file);
@@ -75,8 +77,7 @@ int PLYLoadFile(char* filename, PLY_Mesh* mesh){
             (parsed >= 6) ? Vec3Make(nx, ny, nz) : Vec3Make(0.f, 0.f, 1.f);
         vertices[i].texCoord
             = (parsed >= 8) ? Vec2Make(s, t) : Vec2Make(0.f, 0.f);
-        vertices[i].color =
-            (parsed >= 11) ? Vec3Make(r, g, b) : Vec3Make(1.f, 1.f, 1.f);
+        vertices[i].color = (parsed >= 11) ? RGBA_INT(r, g, b, a) : 0;
     }
 
     mesh->triCount = faceCount; /* Only supporting triangulated meshes! */

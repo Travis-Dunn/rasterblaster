@@ -130,7 +130,10 @@ void Render(){
     /*
     ShadowMapperRender(&shadowMapper, &cube);
     */
+    /*
     Obj3DDrawWireframe(&cam, &plyCube, RGBA_INT(16, 32, 96, 255));
+    */
+    Obj3DDrawVertexColor(&cam, &plyCube);
 }
 
 void debugCorner(char* str, Vec3 v){
