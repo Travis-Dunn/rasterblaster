@@ -179,6 +179,11 @@ void CameraRotLocalYFloat(Camera* cam, float dy){
     cam->viewDirty = 1;
 }
 
+void CameraRotGlobalYFloat(Camera* cam, float dy){
+    cam->dRotGlobal.y = -cam->rotateFactor * *cam->dt * dy;
+    cam->viewDirty = 1;
+}
+
 void UpdateCamera(Camera* cam){
     int frustumDirty = cam->viewDirty || cam->projDirty;
 
@@ -193,13 +198,25 @@ void UpdateCamera(Camera* cam){
     Quat dGPitchQ = QuatFromAxisAngle(cam->gRight,   FRADS(cam->dRotGlobal.x));
     Quat dGYawQ =   QuatFromAxisAngle(cam->gUp,      FRADS(cam->dRotGlobal.y));
     Quat dGRollQ =  QuatFromAxisAngle(cam->gForward, FRADS(cam->dRotGlobal.z));
+    /*
     Quat gQ = QuatMul(dGPitchQ, QuatMul(dGYawQ, dGRollQ));
+    */
+    Quat gQ = QuatMul(dGYawQ, QuatMul(dGPitchQ, dGRollQ));
     Quat dLPitchQ = QuatFromAxisAngle(cam->right,    FRADS(cam->dRotLocal.x));
     Quat dLYawQ =   QuatFromAxisAngle(cam->up,       FRADS(cam->dRotLocal.y));
     Quat dLRollQ =  QuatFromAxisAngle(cam->forward,  FRADS(cam->dRotLocal.z));
+    /*
     Quat lQ = QuatMul(dLPitchQ, QuatMul(dLYawQ, dLRollQ));
+    */
+    Quat lQ = QuatMul(dLYawQ, QuatMul(dLPitchQ, dLRollQ));
     /* is this order right?, It works... */
-    cam->rot = QuatMul(cam->rot, QuatMul(lQ, gQ));
+    /*
+    cam->rot =      QuatMul(cam->rot, QuatMul(lQ, gQ));
+    */
+    /*
+    cam->rot =      QuatMul(QuatMul(gQ, cam->rot), lQ);
+    */
+    cam->rot =      QuatMul(gQ, QuatMul(cam->rot, lQ));
     cam->forward =  QuatRotateVec3(cam->rot, cam->gForward);
     cam->up =       QuatRotateVec3(cam->rot, cam->gUp);
     cam->right =    QuatRotateVec3(cam->rot, cam->gRight);
@@ -248,6 +265,98 @@ updateFrustum:
 
     UpdateFrustum(cam);
     /* candidate for removal */
+    UpdateViewFrustum(cam);
+}
+
+void UpdateCamera1(Camera* cam, int frameCount){
+    int frustumDirty = cam->viewDirty || cam->projDirty;
+
+    if (!cam->viewDirty) goto updateProj;
+
+    // Update position (this part stays the same)
+    Vec3 dx = Vec3Scale(cam->right,      cam->dPosLocal.x);
+    Vec3 dy = Vec3Scale(cam->up,         cam->dPosLocal.y);
+    Vec3 dz = Vec3Scale(cam->forward,   -cam->dPosLocal.z);
+    cam->pos = Vec3Add(cam->pos, Vec3Add(dx, Vec3Add(dy,
+                Vec3Add(dz, cam->dPosGlobal))));
+
+    // Debug: print what rotations we're applying
+    if (cam->dRotGlobal.y != 0.f || cam->dRotLocal.x != 0.f) {
+        printf("Frame %d: dRotGlobal.y=%.3f, dRotLocal.x=%.3f\n", 
+               frameCount, cam->dRotGlobal.y, cam->dRotLocal.x);
+    }
+
+    // Update yaw and pitch angles
+    cam->yaw   += cam->dRotGlobal.y + cam->dRotLocal.y;
+    cam->pitch += cam->dRotGlobal.x + cam->dRotLocal.x;
+    
+    // Clamp pitch to avoid gimbal lock
+    const float maxPitch = 89.0f;
+    if (cam->pitch > maxPitch)  cam->pitch = maxPitch;
+    if (cam->pitch < -maxPitch) cam->pitch = -maxPitch;
+    
+    // Debug: print accumulated angles
+    printf("Yaw: %.2f, Pitch: %.2f\n", cam->yaw, cam->pitch);
+    
+    // Let's try a different approach - apply rotations in a very explicit order
+    // Create rotation matrices instead of quaternions to be absolutely sure
+    Mat4 yawMat = MatYaw(FRADS(cam->yaw));
+    Mat4 pitchMat = MatPitch(FRADS(cam->pitch));
+    
+    // Combine: first yaw, then pitch
+    Mat4 rotMat = MatMatMul(&pitchMat, &yawMat);
+    
+    // Extract forward, up, right from the rotation matrix
+    cam->right.x   = rotMat.m[0][0];
+    cam->right.y   = rotMat.m[1][0];
+    cam->right.z   = rotMat.m[2][0];
+    
+    cam->up.x      = rotMat.m[0][1];
+    cam->up.y      = rotMat.m[1][1];
+    cam->up.z      = rotMat.m[2][1];
+    
+    cam->forward.x = -rotMat.m[0][2];  // Negative because we use -Z as forward
+    cam->forward.y = -rotMat.m[1][2];
+    cam->forward.z = -rotMat.m[2][2];
+    
+    // Debug: print the resulting up vector
+    printf("Up vector: (%.3f, %.3f, %.3f)\n", cam->up.x, cam->up.y, cam->up.z);
+    
+    // Update view matrix
+    cam->view = Mat4LookAt(cam->pos, Vec3Add(cam->pos, cam->forward), cam->up);
+    
+    // Reset flag
+    cam->viewDirty = 0;
+
+    // Reset deltas
+    cam->dPosGlobal = Vec3Make(0.f, 0.f, 0.f);
+    cam->dPosLocal  = Vec3Make(0.f, 0.f, 0.f);
+    cam->dRotGlobal = Vec3Make(0.f, 0.f, 0.f);
+    cam->dRotLocal  = Vec3Make(0.f, 0.f, 0.f);
+
+    // Update roll (always 0 for FPS)
+    cam->roll = 0.f;
+
+    // Update misc cached values
+    cam->inverseDir = Vec3Make(-cam->forward.x, -cam->forward.y,
+            -cam->forward.z);
+
+updateProj:
+    if (!cam->projDirty) goto updateFrustum;
+
+    float newFov = FRADS(cam->dFov) + cam->fov;
+    newFov = newFov > cam->fovMax ? cam->fovMax : newFov;
+    newFov = newFov < cam->fovMin ? cam->fovMin : newFov;
+    cam->fov = newFov;
+    cam->proj = Mat4Perspective(cam->fov, cam->ar, cam->nearClip, cam->farClip);
+    cam->dFov = 0.f;
+    cam->fovDegrees = FDEGS(cam->fov);
+    cam->projDirty = 0;
+
+updateFrustum:
+    if (!frustumDirty) return;
+
+    UpdateFrustum(cam);
     UpdateViewFrustum(cam);
 }
 

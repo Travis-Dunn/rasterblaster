@@ -78,6 +78,18 @@ typedef struct {
     int count;
 } VertexColorTriCluster;
 
+typedef struct {
+    VertexColorVert verts[8];
+    int vertCount;
+    int isTileBoundary[8];
+} VertexColorNGonEdge;
+
+typedef struct {
+    VertexColorTri tris[6];
+    int count;
+    int isTileBoundary[6][3];
+} VertexColorTriClusterEdge;
+
 extern Renderer renderer;
 
 /* called by platform layer */
@@ -88,6 +100,7 @@ static inline void PutPixel_(int x, int y, int c);
 void PutPixel_external(int x, int y, int c);
 void PutPixel_external_safe(int x, int y, int c);
 void BlendPixel_(int x, int y, int c);
+static inline int  InterpolateColor_(int c0, int c1, float t);
 static inline void DrawLineOct0_(int x0, int y0, int dx, int dy, int xdir, 
         int c);
 static inline void DrawLineOct1_(int x0, int y0, int dx, int dy, int xdir,
@@ -100,6 +113,8 @@ static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu1_(Vec3 v0, Vec3 v1, DepthBuffer* db);
 static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c);
+static inline void DrawLineDDAVertexColorDepth_(Vec3 v0, Vec3 v1, int c0,
+        int c1);
 
 void DrawLine_(int x0, int y0, int x1, int y1, int c);
 void DrawTri_(int x0, int y0, int x1, int y1, int x2, int y2, int c);
@@ -130,11 +145,12 @@ static inline void TransformTriClipNDC_(Tri4* clip, Tri3* ndc, Camera* cam);
 static inline void DrawWireframeTri_(Tri3* tri, int c);
 static inline void DrawSolidColorTri_(Tri3* tri, int c);
 static inline void DrawVertexColorTri_(Tri3* tri, int c[3]);
-
+static inline void DrawVertexColorTriBounds_(Tri3* tri, int c[3]);
 
 /* Render object */
 void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c);
 void Obj3DDrawVertexColor(Camera* cam, Obj3D* obj);
+void Obj3DDrawGround(Camera* cam, Obj3D* obj);
 void DrawObj3DLambert(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
         int nLights, DepthBuffer* db);
 void DrawObj3DLambertShadow(Camera* cam, Obj3D* obj, Framebuffer* fb, Light* l,
@@ -161,6 +177,15 @@ static inline VertexColorVert VertexColorVertLerp_(VertexColorVert a,
         VertexColorVert b, float t);
 static inline VertexColorTriCluster VertexColorTriangulate_
         (VertexColorNGon ngon);
+
+static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
+        (VertexColorNGonEdge input, int plane);
+static inline VertexColorNGonEdge VertexColorTriClipEdge_
+        (VertexColorVert verts[3], int isTileBoundery[3]);
+static inline VertexColorTriClusterEdge VertexColorTriangulateEdge_
+        (VertexColorNGonEdge ngon);
+
+static inline int TriOutsideViewFrustum_(Vec4 v0, Vec4 v1, Vec4 v2);
 
 /* Used for rendering off screen buffers such as the depth buffer */
 void VisualizeBuffer(void* buf, int w, int h, char* type);

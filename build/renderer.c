@@ -6,6 +6,8 @@
 #include "mouse.h"
 #include "logger.h"
 
+#include "fenv.h"
+
 Framebuffer framebuffer = {0};
 Renderer renderer = {0};
 float* depthbuffer = 0;
@@ -48,7 +50,9 @@ void BlendPixel_(int x, int y, int c){
     if (x >= renderer.framebuffer.w || x < 0 ||
         y >= renderer.framebuffer.h || y < 0){
         printf("x: %d, y: %d\n", x, y);
+        /*
         getchar();
+        */
         return;
     }    
  
@@ -72,6 +76,18 @@ void BlendPixel_(int x, int y, int c){
     unsigned char g_ = ((255 - a) * fbg + a * g) / 255;
     unsigned char b_ = ((255 - a) * fbb + a * b) / 255;
     *addr = RGBA_INT(r_, g_, b_, fba);
+}
+
+static inline int  InterpolateColor_(int c0, int c1, float t) {
+    int r0 = GETR(c0), g0 = GETG(c0), b0 = GETB(c0), a0 = GETA(c0);
+    int r1 = GETR(c1), g1 = GETG(c1), b1 = GETB(c1), a1 = GETA(c1);
+
+    int r = (int)(r0 + t * (r1 - r0));
+    int g = (int)(g0 + t * (g1 - g0));
+    int b = (int)(b0 + t * (b1 - b0));
+    int a = (int)(a0 + t * (a1 - a0));
+
+    return RGBA_INT(r, g, b, a);
 }
 
 static inline void DrawLineOct0_(int x0, int y0, int dx, int dy, int xdir, 
@@ -954,6 +970,48 @@ static inline void DrawLineDDA_(Vec3 v0, Vec3 v1, DepthBuffer* db){
     }
 }
 
+static inline void DrawLineDDAVertexColorDepth_(Vec3 v0, Vec3 v1, int c0,
+        int c1) {
+    float depth0 = v0.z;
+    float depth1 = v1.z;
+
+    float dx = v1.x - v0.x;
+    float dy = v1.y - v0.y;
+    float dz = depth1 - depth0;
+
+    float abs_dx = (dx < 0) ? -dx : dx;
+    float abs_dy = (dy < 0) ? -dy : dy;
+
+    int steps = (abs_dx > abs_dy) ? (int)(abs_dx + 0.5f) : (int)(abs_dy + 0.5f);
+    if (steps == 0){
+        int x = (int)(v0.x + 0.5f);
+        int y = (int)(v0.y + 0.5f);
+        /*
+        if (!DepthBufferTestWrite(&renderer.db, x, y, depth0)) return;
+        */
+        PutPixel(x, y, c0);
+        return;
+    }
+
+    for (int i = 0; i <= steps; i++){
+        float f = i / (float)steps;
+        assert(f >= 0.f && f <= 1.f);
+
+        float x_ = v0.x + f * dx;
+        float y_ = v0.y + f * dy;
+
+        int x = (int)(x_ + 0.5f);
+        int y = (int)(y_ + 0.5f);
+
+        float d = depth0 + f * dz;
+        /*
+        if (!DepthBufferTestWrite(&renderer.db, x, y, d)) continue;
+        */
+
+        PutPixel(x, y, InterpolateColor_(c0, c1, f));
+    }
+}
+
 static inline void DrawLineWu_(Vec3 v0, Vec3 v1, DepthBuffer* db){
     unsigned char r = 192;
     unsigned char g = 128;
@@ -1165,6 +1223,16 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
     float dy = v1.y - v0.y;
     float absdx = fabsf(dx);
     float absdy = fabsf(dy);
+
+    if (absdx < 0.001f && absdy < 0.001f) {
+        int x = (int)roundf(v0.x);
+        int y = (int)roundf(v0.y);
+        if (x >= 0 && x < renderer.framebuffer.w &&
+                y >= 0 && y < renderer.framebuffer.h) {
+            BlendPixel_(x, y, RGBA_INT(r, g, b, 255));
+        }
+        return;
+    }
     
     // Determine if line is more horizontal or vertical
     if (absdx > absdy) {
@@ -1201,10 +1269,12 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
             float z = v0.z + ((((float)x - v0.x) / dx) * dz);
             int testy = (yFloor >= 0) ? yFloor : 0;
             testy = (testy < renderer.framebuffer.h) ? testy : renderer.framebuffer.h;
+            /*
             if (!DepthBufferTestWrite(&renderer.db, x, testy, z)){
                 y += gradient;
                 continue;
             }
+            */
 
             if (0){
             /* top pixel is dominant */
@@ -1253,7 +1323,7 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
                 getchar();
             }
             BlendPixel_(x, yFloor, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
-            if (yFloor >= 999){
+            if (yFloor >= renderer.framebuffer.h - 1){
                 y += gradient;
                 continue;
             }
@@ -1263,6 +1333,9 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
             y += gradient;
         }
     } else {
+        /*
+        printf("v0: %8.5f, %8.5f, v1: %8.5f, %8.5f\n", v0.x, v0.y, v1.x, v1.y);
+        */
         /* slope > 1 */
         if (v0.y > v1.y) {
             // Swap endpoints
@@ -1280,6 +1353,9 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
         assert(y0 < 1000);
         assert(y1 >= 0);
         assert(y1 < 1000);
+        /*
+        printf("gradient: %8.5f\n", gradient);
+        */
         float x = v0.x + gradient * (y0 - v0.y);
 
         float dz = v1.z - v0.z;
@@ -1294,10 +1370,12 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
             float z = v0.z + (((y - v0.y) / dy) * dz);
             int testx = (xFloor >= 0) ? xFloor : 0;
             testx = (testx < renderer.framebuffer.w) ? testx : renderer.framebuffer.w;
+            /*
             if (!DepthBufferTestWrite(&renderer.db, testx, y, z)){
                 x += gradient;
                 continue;
             }
+            */
 
             
             // Anti-aliased pixels
@@ -1311,7 +1389,7 @@ static inline void DrawLineWu_Gamma(Vec3 v0, Vec3 v1, int c){
                 getchar();
             }
             BlendPixel_(xFloor, y, RGBA_INT(r, g, b, renderer.gammaLUT[a0]));
-            if (xFloor >= 999){
+            if (xFloor >= renderer.framebuffer.w - 1){
                 x += gradient;
                 continue;
             }
@@ -1480,7 +1558,60 @@ static inline VertexColorTriCluster VertexColorTriangulate_
     return result;
 }
 
+static inline VertexColorTriClusterEdge VertexColorTriangulateEdge_
+        (VertexColorNGonEdge ngon) {
+    VertexColorTriClusterEdge result;
+    result.count = 0;
 
+    if (ngon.vertCount < 3) return result;
+
+    if (ngon.vertCount == 3) {
+        result.tris[0].v0 = ngon.verts[0];
+        result.tris[0].v1 = ngon.verts[1];
+        result.tris[0].v2 = ngon.verts[2];
+        result.isTileBoundary[0][0] = ngon.isTileBoundary[0];
+        result.isTileBoundary[0][1] = ngon.isTileBoundary[1];
+        result.isTileBoundary[0][2] = ngon.isTileBoundary[2];
+        result.count = 1;
+        return result;
+    }
+
+    VertexColorVert pivot = ngon.verts[0];
+    for (int i = 1; i < ngon.vertCount - 1; i++) {
+        if (i == 1) {
+            result.tris[result.count].v0 = pivot;
+            result.tris[result.count].v1 = ngon.verts[i];
+            result.tris[result.count].v2 = ngon.verts[i + 1];
+            /*
+            result.isTileBoundary[result.count][0] = ngon.isTileBoundary[1];
+            result.isTileBoundary[result.count][1] = ngon.isTileBoundary[2];
+            result.isTileBoundary[result.count][2] = 0;
+            */
+            result.isTileBoundary[result.count][0] = 0;
+            result.isTileBoundary[result.count][1] = ngon.isTileBoundary[1];
+            result.isTileBoundary[result.count][2] = ngon.isTileBoundary[2];
+ 
+            result.count ++;
+        } else if (i == ngon.vertCount - 2) {
+            result.tris[result.count].v0 = pivot;
+            result.tris[result.count].v1 = ngon.verts[i];
+            result.tris[result.count].v2 = ngon.verts[i + 1];
+            result.isTileBoundary[result.count][0] = ngon.isTileBoundary[0];
+            result.isTileBoundary[result.count][1] = 0;
+            result.isTileBoundary[result.count][2] = ngon.isTileBoundary[ngon.vertCount - 1];
+            result.count++;
+        } else {
+            result.tris[result.count].v0 = pivot;
+            result.tris[result.count].v1 = ngon.verts[i];
+            result.tris[result.count].v2 = ngon.verts[i + 1];
+            result.isTileBoundary[result.count][0] = 0;
+            result.isTileBoundary[result.count][1] = 0;
+            result.isTileBoundary[result.count][2] = ngon.isTileBoundary[i + 1];
+            result.count++;
+        }
+    }
+    return result;
+}
 
 static inline VertexColorNGon VertexColorTriPlaneClip_(VertexColorNGon input,
         int plane) {
@@ -1574,6 +1705,115 @@ static inline VertexColorVert VertexColorVertLerp_(VertexColorVert a,
     unsigned char ra = (unsigned char)(aa + (((ba - aa) * ti) >> 8));
     result.color = RGBA_INT(rr, rg, rb, ra);
     return result;
+}
+
+static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
+        (VertexColorNGonEdge input, int plane) {
+    VertexColorNGonEdge output;
+    output.vertCount = 0;
+
+    int lastVertOriginal;
+    int boundariesWritten = 0;
+
+    if (input.vertCount == 0) return output;
+    VertexColorVert prev_vert = input.verts[input.vertCount - 1];
+    int prev_inside = PointInsidePlane_(prev_vert.pos, plane);
+
+    for (int i = 0; i < input.vertCount; i++){
+        if (output.vertCount >= 7){
+            /* TODO: logging */
+            break;
+        }
+        VertexColorVert curr_vert = input.verts[i];
+        int curr_inside = PointInsidePlane_(curr_vert.pos, plane);
+
+        if (curr_inside) {
+            if (!prev_inside && output.vertCount < 7){
+                output.verts[output.vertCount] =
+                    VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+                lastVertOriginal = 0;
+                int tileBoundary = input.isTileBoundary[i];
+                if (!lastVertOriginal && !tileBoundary) {
+                    output.isTileBoundary[output.vertCount] = lastVertOriginal;
+                    boundariesWritten++;
+                    output.isTileBoundary[output.vertCount++ + 1] = tileBoundary;
+                    boundariesWritten++;
+                } else {
+                    int b = (boundariesWritten == 0) ? 0 : tileBoundary;
+                    output.isTileBoundary[boundariesWritten++] = b;
+                    output.vertCount++;
+                }
+            }
+            if (output.vertCount < 8) {
+                output.verts[output.vertCount++] = curr_vert;
+                lastVertOriginal = 1;
+                if (boundariesWritten < output.vertCount)
+                    output.isTileBoundary[boundariesWritten++] =
+                        input.isTileBoundary[i];
+            }
+        } else if (prev_inside && output.vertCount < 8) {
+            /* do this */
+            output.verts[output.vertCount] =
+                VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+            lastVertOriginal = 0;
+            int tileBoundary = input.isTileBoundary[i];
+            if (!lastVertOriginal && !tileBoundary) {
+                output.isTileBoundary[output.vertCount] = lastVertOriginal; 
+                boundariesWritten++;
+                output.isTileBoundary[output.vertCount++ + 1] = tileBoundary;
+                boundariesWritten++;
+            } else {
+                output.isTileBoundary[output.vertCount++] = tileBoundary;
+                boundariesWritten++;
+            }
+        }
+        prev_vert = curr_vert;
+        prev_inside = curr_inside;
+    }
+    /* the results of this print statement look correct */
+    /*
+    printf("created an ngon with %d verts\n", output.vertCount);
+    */
+    return output;
+}
+
+static inline VertexColorNGonEdge VertexColorTriClipEdge_
+        (VertexColorVert verts[3], int isTileBoundary[3]) {
+    VertexColorNGonEdge ngon;
+    ngon.verts[0] = verts[0];
+    ngon.verts[1] = verts[1];
+    ngon.verts[2] = verts[2];
+    ngon.isTileBoundary[0] = isTileBoundary[0];
+    ngon.isTileBoundary[1] = isTileBoundary[1];
+    ngon.isTileBoundary[2] = isTileBoundary[2];
+    ngon.vertCount = 3;
+
+    for (int plane = 0; plane < 6; plane++) {
+        ngon = VertexColorTriPlaneClipEdge_(ngon, plane);
+
+        if (ngon.vertCount == 0) break;
+    }
+    /* for some reason this prints only zeroes */
+    /*
+    printf("ngon verts: %d\n", ngon.vertCount);
+    */
+    return ngon;
+}
+
+static inline int TriOutsideViewFrustum_(Vec4 v0, Vec4 v1, Vec4 v2) {
+    int v0Inside = 1; int v1Inside = 1; int v2Inside = 1;
+    for (int i = 0; i < 6; i++) {
+        if (v0Inside) {
+            v0Inside = PointInsidePlane_(v0, i);
+        }
+        if (v1Inside) {
+            v1Inside = PointInsidePlane_(v1, i);
+        }
+        if (v2Inside) {
+            v2Inside = PointInsidePlane_(v2, i);
+        }
+    }
+    return (!v0Inside && !v1Inside && !v2Inside);
 }
 
 /* Assumes that the table is large enough! If it's not, corrupt stack */
@@ -1710,8 +1950,12 @@ void Obj3DDrawWireframe(Camera* cam, Obj3D* obj, int c){
 
         for (int j = 0; j < cluster.count; j++) {
             Tri3 ndc;
+            Tri4 pos4;
+            pos4.v0 = cluster.tris[j].v0;
+            pos4.v1 = cluster.tris[j].v1;
+            pos4.v2 = cluster.tris[j].v2;
              /* transform from clip -> NDC */
-            TransformTri4ClipNDC_(&cluster.tris[j], &ndc, cam);
+            TransformTri4ClipNDC_(&pos4, &ndc, cam);
 
             DrawWireframeTri_(&ndc, c);
         }
@@ -1832,6 +2076,266 @@ static inline void DrawVertexColorTri_(Tri3* tri, int c[3]){
 
     for (int y = minY; y <= maxY; y++) {
         for (int x = minX; x <= maxX; x++) {
+            /* Barycentric weights (affine) */
+            float l0 = ((tri->v1.y - tri->v2.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v2.x - tri->v1.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l1 = ((tri->v2.y - tri->v0.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v0.x - tri->v2.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l2 = 1.f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < -1e-6f || l1 < -1e-6f || l2 < -1e-6f) continue;
+
+            float depth = l0 * tri->v0.z + l1 * tri->v1.z + l2 * tri->v2.z;
+
+            if (!DepthBufferTestWrite(&renderer.db, x, y, depth)) continue;
+
+            /* interpolate vertex color */
+            float r0 = (float)GETR(c[0]);
+            float g0 = (float)GETG(c[0]);
+            float b0 = (float)GETB(c[0]);
+            float a0 = (float)GETA(c[0]);
+            float r1 = (float)GETR(c[1]);
+            float g1 = (float)GETG(c[1]);
+            float b1 = (float)GETB(c[1]);
+            float a1 = (float)GETA(c[1]);
+            float r2 = (float)GETR(c[2]);
+            float g2 = (float)GETG(c[2]);
+            float b2 = (float)GETB(c[2]);
+            float a2 = (float)GETA(c[2]);
+            unsigned char rr = (unsigned char)(l0 * r0 + l1 * r1 + l2 * r2);
+            unsigned char rg = (unsigned char)(l0 * g0 + l1 * g1 + l2 * g2);
+            unsigned char rb = (unsigned char)(l0 * b0 + l1 * b1 + l2 * b2);
+            unsigned char ra = (unsigned char)(l0 * a0 + l1 * a1 + l2 * a2);
+            int color = RGBA_INT(rr, rg, rb, ra);
+
+            PutPixel(x, y, color);
+        }
+    }
+}
+
+void Obj3DDrawGround(Camera* cam, Obj3D* obj){
+    assert(cam); assert(obj);
+
+    Mat4 matModelView = MatMatMul(&cam->view, &obj->matModel);
+
+    /*
+    float buf[2][9];
+    int bbuf[2][3];
+    float ngonVerts[16];
+    int ngonBoundaries[4];
+    int ngonVertCount;
+    */
+    
+    for (int i = 0; i < obj->model->plymesh.triCount; i++){
+        PLY_Triangle tri = PLYGetTriangle(&obj->model->plymesh, i); 
+        /* Convert pos to Vec4 for matrix multiplication.
+         * Get Vertex colors, which are the only per-vertex attrib we need */
+        Vec4 v0 = Vec4Make(tri.v0.pos.x, tri.v0.pos.y, tri.v0.pos.z, 1.f);
+        Vec4 v1 = Vec4Make(tri.v1.pos.x, tri.v1.pos.y, tri.v1.pos.z, 1.f);
+        Vec4 v2 = Vec4Make(tri.v2.pos.x, tri.v2.pos.y, tri.v2.pos.z, 1.f);
+
+        /*
+        buf[i][0] = v0.x;
+        buf[i][1] = v0.y;
+        buf[i][2] = v0.z;
+        buf[i][3] = v1.x;
+        buf[i][4] = v1.y;
+        buf[i][5] = v1.z;
+        buf[i][6] = v2.x;
+        buf[i][7] = v2.y;
+        buf[i][8] = v2.z;
+        */
+
+        int c0 = tri.v0.color; int c1 = tri.v1.color; int c2 = tri.v2.color;
+
+        int boundary0 = ((fabsf(v0.x - v2.x) < 0.001f) || (fabsf(v0.z - v2.z) < 0.001f));
+        int boundary1 = ((fabsf(v1.x - v0.x) < 0.001f) || (fabsf(v1.z - v0.z) < 0.001f));
+        int boundary2 = ((fabsf(v2.x - v1.x) < 0.001f) || (fabsf(v2.z - v1.z) < 0.001f));
+        int boundaries[3] = { boundary0, boundary1, boundary2 };
+
+        /*
+        bbuf[i][0] = boundary0;
+        bbuf[i][1] = boundary1;
+        bbuf[i][2] = boundary2;
+        */
+        
+        /* transform model -> world -> view */
+        v0 = MatVertMul(&matModelView, v0);
+        v1 = MatVertMul(&matModelView, v1);
+        v2 = MatVertMul(&matModelView, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 side0 = Vec3Make(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+        Vec3 side1 = Vec3Make(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+        Vec3 normal = Vec3Norm(Vec3Cross(side0, side1));
+        float nDotCam = Vec3Dot(normal, Vec3Norm(Vec3Make(-v0.x, -v0.y, -v0.z)));
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (renderer.enableCulling)
+            if (nDotCam <= -0.001f) continue;
+        /* transform into clip space */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+        VertexColorVert vert0 = { v0, c0 };
+        VertexColorVert vert1 = { v1, c1 };
+        VertexColorVert vert2 = { v2, c2 };
+        VertexColorVert verts[3] = { vert0, vert1, vert2 };
+        VertexColorNGonEdge result = VertexColorTriClipEdge_(&verts[0], &boundaries[0]);
+
+        /*
+        if (0) {
+        if (i == 1) {
+            ngonVertCount = result.vertCount;
+            ngonVerts[0] = result.verts[0].pos.x;
+            ngonVerts[1] = result.verts[0].pos.y;
+            ngonVerts[2] = result.verts[0].pos.z;
+            ngonVerts[3] = result.verts[0].pos.w;
+            ngonVerts[4] = result.verts[1].pos.x;
+            ngonVerts[5] = result.verts[1].pos.y;
+            ngonVerts[6] = result.verts[1].pos.z;
+            ngonVerts[7] = result.verts[1].pos.w;
+            ngonVerts[8] = result.verts[2].pos.x;
+            ngonVerts[9] = result.verts[2].pos.y;
+            ngonVerts[10] = result.verts[2].pos.z;
+            ngonVerts[11] = result.verts[2].pos.w;
+            ngonVerts[12] = result.verts[3].pos.x;
+            ngonVerts[13] = result.verts[3].pos.y;
+            ngonVerts[14] = result.verts[3].pos.z;
+            ngonVerts[15] = result.verts[3].pos.w;
+            ngonBoundaries[0] = result.isTileBoundary[0]; 
+            ngonBoundaries[1] = result.isTileBoundary[1]; 
+            ngonBoundaries[2] = result.isTileBoundary[2]; 
+            ngonBoundaries[3] = result.isTileBoundary[3]; 
+        }
+        }
+        */
+
+        /* triangulate */
+        VertexColorTriClusterEdge cluster = VertexColorTriangulateEdge_(result);
+        
+        for (int j = 0; j < cluster.count; j++) {
+            Tri3 ndc;
+             /* transform from clip -> NDC */
+            Tri4 pos4;
+            int colors[3];
+            pos4.v0 = cluster.tris[j].v0.pos;
+            colors[0] = cluster.tris[j].v0.color;
+            pos4.v1 = cluster.tris[j].v1.pos;
+            colors[1] = cluster.tris[j].v1.color;
+            pos4.v2 = cluster.tris[j].v2.pos;
+            colors[2] = cluster.tris[j].v2.color;
+            TransformTri4ClipNDC_(&pos4, &ndc, cam);
+
+            /*
+            char buf[256];
+            sprintf(buf, "v0: (%.3f, %.3f, %.3f)\n", ndc.v0.x, ndc.v0.y, ndc.v0.z);
+            LogStr(LOG_INFO, buf);
+            fenv_t fstate;
+            feholdexcept(&fstate);
+            printf("v0: (%.3f, %.3f, %.3f)\n", ndc.v0.x, ndc.v0.y, ndc.v0.z);
+            fesetenv(&fstate);
+            */
+
+            int boundary0 = cluster.isTileBoundary[j][0];
+            int boundary1 = cluster.isTileBoundary[j][1];
+            int boundary2 = cluster.isTileBoundary[j][2];
+
+            DrawVertexColorTri_(&ndc, &colors[0]);
+            
+            float factor = 1.1f;
+            int r0 = GETR(colors[0]);
+            int g0 = GETG(colors[0]);
+            int b0 = GETB(colors[0]);
+            int a0 = GETA(colors[0]);
+            int r1 = GETR(colors[1]);
+            int g1 = GETG(colors[1]);
+            int b1 = GETB(colors[1]);
+            int a1 = GETA(colors[1]);
+            int r2 = GETR(colors[2]);
+            int g2 = GETG(colors[2]);
+            int b2 = GETB(colors[2]);
+            int a2 = GETA(colors[2]);
+            r0 = (int)fmin((r0 * factor), 255.f);
+            g0 = (int)fmin((g0 * factor), 255.f);
+            b0 = (int)fmin((b0 * factor), 255.f);
+            a0 = (int)fmin((a0 * factor), 255.f);
+            r1 = (int)fmin((r1 * factor), 255.f);
+            g1 = (int)fmin((g1 * factor), 255.f);
+            b1 = (int)fmin((b1 * factor), 255.f);
+            a1 = (int)fmin((a1 * factor), 255.f);
+            r2 = (int)fmin((r2 * factor), 255.f);
+            g2 = (int)fmin((g2 * factor), 255.f);
+            b2 = (int)fmin((b2 * factor), 255.f);
+            a2 = (int)fmin((a2 * factor), 255.f);
+
+
+
+            int color0 = RGBA_INT(r0, g0, b0, a0);
+            int color1 = RGBA_INT(r1, g1, b1, a1);
+            int color2 = RGBA_INT(r2, g2, b2, a2);
+            int white = RGBA_INT(255, 255, 255, 255);
+            if (boundary0)
+                DrawLineDDAVertexColorDepth_(ndc.v0, ndc.v2, color0, color2);
+            if (boundary1)
+                DrawLineDDAVertexColorDepth_(ndc.v1, ndc.v0, color1, color0);
+            if (boundary2)
+                DrawLineDDAVertexColorDepth_(ndc.v2, ndc.v1, color2, color1);
+        }
+    }
+    /*
+    if (0) {
+    printf("model space tri #0\n");
+    printf("v0: (%.3f, %.3f, %.3f) v1: (%.3f, %.3f, %.3f), v2: (%.3f, %.3f, %.3f)\n",
+            buf[0][0], buf[0][1], buf[0][2], buf[0][3], buf[0][4], buf[0][5], buf[0][6], buf[0][7], buf[0][8]);
+    printf("model space tri #1\n");
+    printf("v0: (%.3f, %.3f, %.3f) v1: (%.3f, %.3f, %.3f), v2: (%.3f, %.3f, %.3f)\n",
+            buf[1][0], buf[1][1], buf[1][2], buf[1][3], buf[1][4], buf[1][5], buf[1][6], buf[1][7], buf[1][8]);
+
+    printf("boundaries tri #0:\n");
+    printf("%d, %d, %d\n", bbuf[0][0], bbuf[0][1], bbuf[0][2]);
+    printf("boundaries tri #1:\n");
+    printf("%d, %d, %d\n", bbuf[1][0], bbuf[1][1], bbuf[1][2]);
+
+    printf("tri #1 ngon vert count: %d\n", ngonVertCount);
+    printf("clip space vert 0: (%.3f, %.3f, %.3f, %.3f)\n",
+            ngonVerts[0], ngonVerts[1], ngonVerts[2], ngonVerts[3]);
+    printf("clip space vert 1: (%.3f, %.3f, %.3f, %.3f)\n",
+            ngonVerts[4], ngonVerts[5], ngonVerts[6], ngonVerts[7]);
+    printf("clip space vert 2: (%.3f, %.3f, %.3f, %.3f)\n",
+            ngonVerts[8], ngonVerts[9], ngonVerts[10], ngonVerts[11]);
+    printf("clip space vert 3: (%.3f, %.3f, %.3f, %.3f)\n",
+            ngonVerts[12], ngonVerts[13], ngonVerts[14], ngonVerts[15]);
+    printf("boundaries: (%d, %d, %d, %d)\n", ngonBoundaries[0],
+            ngonBoundaries[1], ngonBoundaries[2], ngonBoundaries[3]); 
+    }    
+    */
+}
+
+static inline void DrawVertexColorTriBounds_(Tri3* tri, int c[3]) {
+    TransformTriNDCFloatScreen_(tri);      
+    int minX = (int)floorf  (fminf(fminf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int maxX = (int)ceilf   (fmaxf(fmaxf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int minY = (int)floorf  (fminf(fminf(tri->v0.y, tri->v1.y), tri->v2.y));
+    int maxY = (int)ceilf   (fmaxf(fmaxf(tri->v0.y, tri->v1.y), tri->v2.y));
+
+    float denom = ((tri->v1.y - tri->v2.y) * (tri->v0.x - tri->v2.x) +
+                   (tri->v2.x - tri->v1.x) * (tri->v0.y - tri->v2.y));
+    if (denom == 0.f) return; /* Degenerate triangle */
+
+    float invDen = 1.f / denom;
+
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            if (x < 0 || x >= renderer.framebuffer.w ||
+                y < 0 || y >= renderer.framebuffer.h) continue;
+
             /* Barycentric weights (affine) */
             float l0 = ((tri->v1.y - tri->v2.y) * (x + 0.5f - tri->v2.x) +
                         (tri->v2.x - tri->v1.x) * (y + 0.5f - tri->v2.y)) * invDen;

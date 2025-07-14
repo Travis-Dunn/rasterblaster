@@ -64,7 +64,9 @@ void CameraRotLocalZMinus(Camera* cam);
 void CameraRotLocalZPlus(Camera* cam);
 void CameraRotLocalXFloat(Camera* cam, float dx);
 void CameraRotLocalYFloat(Camera* cam, float dy);
+void CameraRotGlobalYFloat(Camera* cam, float dy);
 void UpdateCamera(Camera* cam);
+void UpdateCamera1(Camera* cam, int frameCount);
 void UpdateFrustum(Camera* cam); /* for the array of Vec3 for shadow mapping */
 void UpdateViewFrustum(Camera* cam); /* not used, candidate for removal */
 void CameraPrint(Camera* cam);

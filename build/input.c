@@ -130,8 +130,8 @@ void InputLoadDefaultMappings(InputSystem* input){
         InputAddMapping(input, 'Q', 0, ACTION_CAM_TRANS_L_Y_PLUS);
         InputAddMapping(input, 'W', 0, ACTION_CAM_TRANS_L_Z_MINUS);
         InputAddMapping(input, 'S', 0, ACTION_CAM_TRANS_L_Z_PLUS);
+        InputAddMouseMapping(input, 1, ACTION_CAM_ROT_G_Y);
         InputAddMouseMapping(input, 0, ACTION_CAM_ROT_L_X);
-        InputAddMouseMapping(input, 1, ACTION_CAM_ROT_L_Y);
         InputAddMapping(input, 'M', 0, ACTION_CAM_ROT_L_Y_MINUS);
         InputAddMapping(input, 'B', 0, ACTION_CAM_ROT_L_Y_PLUS);
         InputAddMapping(input, 'H', 0, ACTION_CAM_ROT_L_X_MINUS);

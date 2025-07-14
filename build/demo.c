@@ -21,12 +21,14 @@ static Model rscHouseModel;
 static Model cubeModel;
 static Model sphereModel;
 static Model plyCubeModel;
+static Model plyTestGroundModel;
 static Obj3D carp;
 static Obj3D ground;
 static Obj3D rscHouse;
 static Obj3D cube;
 static Obj3D sphere;
 static Obj3D plyCube;
+static Obj3D plyTestGround;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
@@ -72,6 +74,7 @@ void Init(){
     rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
     sphereModel.mesh = loadOBJ("models/sphere.obj");
     int result = PLYLoadFile("models/cube.ply", &plyCubeModel.plymesh);
+    result = PLYLoadFile("models/test ground.ply", &plyTestGroundModel.plymesh);
     if (result != 0) {
         printf("%d\n", result);
         getchar();
@@ -103,6 +106,10 @@ void Init(){
     plyCube.scale = Vec3Make(1.f, 1.f, 1.f);
     plyCube.rot = Vec3Make(0.f, 0.f, 3.f);
     plyCube.pos = Vec3Make(0.f, 0.f, -5.f);
+    plyTestGround.model = &plyTestGroundModel;
+    plyTestGround.scale = Vec3Make(1.f, 1.f, 1.f);
+    plyTestGround.rot = Vec3Make(45.f, 0.f, 0.f);
+    plyTestGround.pos = Vec3Make(-5.25f, -1.f, -5.f);
     carp.id = 12;
     ground.id = 11;
     ShadowMapperUpdate(&shadowMapper);
@@ -112,6 +119,8 @@ void Init(){
 }
 
 void Render(){
+    static int runonce = 0;
+    if (runonce) getchar();
     ClearScreen(192);
     DepthBufferClear(&renderer.db, 1.f);
     ClearPickbuf();
@@ -131,9 +140,16 @@ void Render(){
     ShadowMapperRender(&shadowMapper, &cube);
     */
     /*
+    Obj3DDrawVertexColor(&cam, &plyCube);
+    */
+    /*
     Obj3DDrawWireframe(&cam, &plyCube, RGBA_INT(16, 32, 96, 255));
     */
-    Obj3DDrawVertexColor(&cam, &plyCube);
+    Obj3DDrawGround(&cam, &plyTestGround);
+    /*
+    Obj3DDrawWireframe(&cam, &plyTestGround, RGBA_INT(24, 24, 64, 255));
+    */
+    runonce = 0;
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -164,6 +180,7 @@ void Update(){
     */
     UpdateObj3DModelMatrix(&plyCube);
     UpdateObj3DModelMatrix(&sphere);
+    UpdateObj3DModelMatrix(&plyTestGround);
 
     Event evt;
     while (EventQueueNotEmpty(eventQueue)){
@@ -225,13 +242,13 @@ void Update(){
         */
         cube.pos.z += -0.1f;
     }
-    float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
+    float dx = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_G_Y);
     if (dx != 0.f){
-        CameraRotLocalXFloat(&cam, dx);
+        CameraRotGlobalYFloat(&cam, dx);
     }
-    float dy = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_Y);
+    float dy = InputIsActionMouseMoved(&inputSystem, ACTION_CAM_ROT_L_X);
     if (dy != 0.f){
-        CameraRotLocalYFloat(&cam, dy);
+        CameraRotLocalXFloat(&cam, dy);
     }
     float oldX = cam.pos.x;
     float oldY = cam.pos.y;
