@@ -1713,6 +1713,7 @@ static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
     output.vertCount = 0;
 
     int lastVertOriginal;
+    int vertBeforeLastOriginal;
     int boundariesWritten = 0;
 
     if (input.vertCount == 0) return output;
@@ -1731,6 +1732,7 @@ static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
             if (!prev_inside && output.vertCount < 7){
                 output.verts[output.vertCount] =
                     VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+                vertBeforeLastOriginal = lastVertOriginal;
                 lastVertOriginal = 0;
                 int tileBoundary = input.isTileBoundary[i];
                 if (!lastVertOriginal && !tileBoundary) {
@@ -1740,12 +1742,15 @@ static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
                     boundariesWritten++;
                 } else {
                     int b = (boundariesWritten == 0) ? 0 : tileBoundary;
+                    b = (!vertBeforeLastOriginal && !lastVertOriginal && 
+                            (output.vertCount >= boundariesWritten)) ? 0 : b;
                     output.isTileBoundary[boundariesWritten++] = b;
                     output.vertCount++;
                 }
             }
             if (output.vertCount < 8) {
                 output.verts[output.vertCount++] = curr_vert;
+                vertBeforeLastOriginal = lastVertOriginal;
                 lastVertOriginal = 1;
                 if (boundariesWritten < output.vertCount)
                     output.isTileBoundary[boundariesWritten++] =
@@ -1755,6 +1760,7 @@ static inline VertexColorNGonEdge VertexColorTriPlaneClipEdge_
             /* do this */
             output.verts[output.vertCount] =
                 VertexColorLinePlaneIntersect_(prev_vert, curr_vert, plane);
+            vertBeforeLastOriginal = lastVertOriginal;
             lastVertOriginal = 0;
             int tileBoundary = input.isTileBoundary[i];
             if (!lastVertOriginal && !tileBoundary) {
@@ -2154,6 +2160,11 @@ void Obj3DDrawGround(Camera* cam, Obj3D* obj){
         int boundary2 = ((fabsf(v2.x - v1.x) < 0.001f) || (fabsf(v2.z - v1.z) < 0.001f));
         int boundaries[3] = { boundary0, boundary1, boundary2 };
 
+        /* calculate tile id */
+        short tileX = (short)floorf(fminf(v0.x, fminf(v1.x, v2.x)));
+        short tileZ = (short)floorf(fminf(v0.z, fminf(v1.z, v2.z)));
+        int id = (int)(tileX << 16) | (int)(tileZ & 0xFFFF);
+
         /*
         bbuf[i][0] = boundary0;
         bbuf[i][1] = boundary1;
@@ -2190,7 +2201,7 @@ void Obj3DDrawGround(Camera* cam, Obj3D* obj){
         VertexColorNGonEdge result = VertexColorTriClipEdge_(&verts[0], &boundaries[0]);
 
         /*
-        if (0) {
+        if (1) {
         if (i == 1) {
             ngonVertCount = result.vertCount;
             ngonVerts[0] = result.verts[0].pos.x;
@@ -2247,7 +2258,7 @@ void Obj3DDrawGround(Camera* cam, Obj3D* obj){
             int boundary1 = cluster.isTileBoundary[j][1];
             int boundary2 = cluster.isTileBoundary[j][2];
 
-            DrawVertexColorTri_(&ndc, &colors[0]);
+            DrawVertexColorTriID_(&ndc, &colors[0], id);
             
             float factor = 1.1f;
             int r0 = GETR(colors[0]);
@@ -2280,7 +2291,7 @@ void Obj3DDrawGround(Camera* cam, Obj3D* obj){
             int color0 = RGBA_INT(r0, g0, b0, a0);
             int color1 = RGBA_INT(r1, g1, b1, a1);
             int color2 = RGBA_INT(r2, g2, b2, a2);
-            int white = RGBA_INT(255, 255, 255, 255);
+            int white = RGBA_INT(255, 0, 255, 255);
             if (boundary0)
                 DrawLineDDAVertexColorDepth_(ndc.v0, ndc.v2, color0, color2);
             if (boundary1)
@@ -2290,7 +2301,7 @@ void Obj3DDrawGround(Camera* cam, Obj3D* obj){
         }
     }
     /*
-    if (0) {
+    if (1) {
     printf("model space tri #0\n");
     printf("v0: (%.3f, %.3f, %.3f) v1: (%.3f, %.3f, %.3f), v2: (%.3f, %.3f, %.3f)\n",
             buf[0][0], buf[0][1], buf[0][2], buf[0][3], buf[0][4], buf[0][5], buf[0][6], buf[0][7], buf[0][8]);
@@ -2369,6 +2380,60 @@ static inline void DrawVertexColorTriBounds_(Tri3* tri, int c[3]) {
             unsigned char ra = (unsigned char)(l0 * a0 + l1 * a1 + l2 * a2);
             int color = RGBA_INT(rr, rg, rb, ra);
 
+            PutPixel(x, y, color);
+        }
+    }
+}
+
+static inline void DrawVertexColorTriID_(Tri3* tri, int c[3], int id) {
+    TransformTriNDCFloatScreen_(tri);      
+    int minX = (int)floorf  (fminf(fminf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int maxX = (int)ceilf   (fmaxf(fmaxf(tri->v0.x, tri->v1.x), tri->v2.x));
+    int minY = (int)floorf  (fminf(fminf(tri->v0.y, tri->v1.y), tri->v2.y));
+    int maxY = (int)ceilf   (fmaxf(fmaxf(tri->v0.y, tri->v1.y), tri->v2.y));
+
+    float denom = ((tri->v1.y - tri->v2.y) * (tri->v0.x - tri->v2.x) +
+                   (tri->v2.x - tri->v1.x) * (tri->v0.y - tri->v2.y));
+    if (denom == 0.f) return; /* Degenerate triangle */
+
+    float invDen = 1.f / denom;
+
+    for (int y = minY; y <= maxY; y++) {
+        for (int x = minX; x <= maxX; x++) {
+            /* Barycentric weights (affine) */
+            float l0 = ((tri->v1.y - tri->v2.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v2.x - tri->v1.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l1 = ((tri->v2.y - tri->v0.y) * (x + 0.5f - tri->v2.x) +
+                        (tri->v0.x - tri->v2.x) * (y + 0.5f - tri->v2.y)) * invDen;
+            float l2 = 1.f - l0 - l1;
+
+            /* Inside test (all weights in [0,1]) */
+            if (l0 < -1e-6f || l1 < -1e-6f || l2 < -1e-6f) continue;
+
+            float depth = l0 * tri->v0.z + l1 * tri->v1.z + l2 * tri->v2.z;
+
+            if (!DepthBufferTestWrite(&renderer.db, x, y, depth)) continue;
+
+            /* interpolate vertex color */
+            float r0 = (float)GETR(c[0]);
+            float g0 = (float)GETG(c[0]);
+            float b0 = (float)GETB(c[0]);
+            float a0 = (float)GETA(c[0]);
+            float r1 = (float)GETR(c[1]);
+            float g1 = (float)GETG(c[1]);
+            float b1 = (float)GETB(c[1]);
+            float a1 = (float)GETA(c[1]);
+            float r2 = (float)GETR(c[2]);
+            float g2 = (float)GETG(c[2]);
+            float b2 = (float)GETB(c[2]);
+            float a2 = (float)GETA(c[2]);
+            unsigned char rr = (unsigned char)(l0 * r0 + l1 * r1 + l2 * r2);
+            unsigned char rg = (unsigned char)(l0 * g0 + l1 * g1 + l2 * g2);
+            unsigned char rb = (unsigned char)(l0 * b0 + l1 * b1 + l2 * b2);
+            unsigned char ra = (unsigned char)(l0 * a0 + l1 * a1 + l2 * a2);
+            int color = RGBA_INT(rr, rg, rb, ra);
+
+            UpdatePickbuf(x, y, id);
             PutPixel(x, y, color);
         }
     }

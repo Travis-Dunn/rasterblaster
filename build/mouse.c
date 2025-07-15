@@ -1,12 +1,12 @@
 #include "mouse.h"
 
 int* pickbuf = 0;
-static int width, height;
+static int width, height, displayScale;
 
-int InitPickbuf(int w, int h){
+int InitPickbuf(int w, int h, int scale){
     pickbuf = malloc(sizeof(int) * w * h);
     if (!pickbuf) return 1;
-    width = w, height = h;
+    width = w, height = h, displayScale = scale;
     return 0;
 }
 
@@ -29,9 +29,8 @@ void UpdatePickbuf(int x, int y, int id){
 }
 
 /* This isn't called that much and so can assume some error handling
- * responsibility, but I don't feel like implementing it right now. Also, this
- * takes framebuffer coords - not screen coords. Caller must scale them. */
+ * responsibility, but I don't feel like implementing it right now. */
 int GetClicked(int mouseX, int mouseY){
     if (!pickbuf) return -1;
-    return pickbuf[mouseY * width + mouseX];
+    return pickbuf[(mouseY / displayScale) * width + (mouseX / displayScale)];
 }

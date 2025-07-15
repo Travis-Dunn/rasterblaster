@@ -6,7 +6,7 @@
 
 extern int* pickbuf;
 
-int     InitPickbuf     (int w, int h);
+int     InitPickbuf     (int w, int h, int scale);
 void    ClearPickbuf    ();
 void    FreePickbuf     ();
 void    UpdatePickbuf   (int x, int y, int id);

@@ -145,6 +145,7 @@ static inline void TransformTriClipNDC_(Tri4* clip, Tri3* ndc, Camera* cam);
 static inline void DrawWireframeTri_(Tri3* tri, int c);
 static inline void DrawSolidColorTri_(Tri3* tri, int c);
 static inline void DrawVertexColorTri_(Tri3* tri, int c[3]);
+static inline void DrawVertexColorTriID_(Tri3* tri, int c[3], int id);
 static inline void DrawVertexColorTriBounds_(Tri3* tri, int c[3]);
 
 /* Render object */

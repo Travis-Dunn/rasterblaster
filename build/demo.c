@@ -52,7 +52,7 @@ void Init(){
     renderer.enableCulling = DEFAULT_ENABLE_CULLING;
     renderer.cullFace = DEFAULT_CULL_FACE;
 
-    InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h);
+    InitPickbuf(renderer.framebuffer.w, renderer.framebuffer.h, PIXEL_SCALE);
     (void)DepthBufferInitOld(&depthbuf, renderer.framebuffer.w,
             renderer.framebuffer.h);
     (void)ShadowMapperInit(&shadowMapper, renderer.framebuffer.w,
@@ -74,7 +74,7 @@ void Init(){
     rscHouseModel.tex = LoadBimg("textures/rsc house tex.bimg");
     sphereModel.mesh = loadOBJ("models/sphere.obj");
     int result = PLYLoadFile("models/cube.ply", &plyCubeModel.plymesh);
-    result = PLYLoadFile("models/test ground.ply", &plyTestGroundModel.plymesh);
+    result = PLYLoadFile("models/test ground_new.ply", &plyTestGroundModel.plymesh);
     if (result != 0) {
         printf("%d\n", result);
         getchar();
@@ -108,8 +108,8 @@ void Init(){
     plyCube.pos = Vec3Make(0.f, 0.f, -5.f);
     plyTestGround.model = &plyTestGroundModel;
     plyTestGround.scale = Vec3Make(1.f, 1.f, 1.f);
-    plyTestGround.rot = Vec3Make(45.f, 0.f, 0.f);
-    plyTestGround.pos = Vec3Make(-5.25f, -1.f, -5.f);
+    plyTestGround.rot = Vec3Make(0.f, 0.f, 0.f);
+    plyTestGround.pos = Vec3Make(0.f, 0.f, 0.f);
     carp.id = 12;
     ground.id = 11;
     ShadowMapperUpdate(&shadowMapper);
@@ -119,8 +119,6 @@ void Init(){
 }
 
 void Render(){
-    static int runonce = 0;
-    if (runonce) getchar();
     ClearScreen(192);
     DepthBufferClear(&renderer.db, 1.f);
     ClearPickbuf();
@@ -149,7 +147,6 @@ void Render(){
     /*
     Obj3DDrawWireframe(&cam, &plyTestGround, RGBA_INT(24, 24, 64, 255));
     */
-    runonce = 0;
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -187,9 +184,11 @@ void Update(){
         if (EventDequeue(eventQueue, &evt) == 0){
             switch (evt.type){
             case EVT_LBUTTONDOWN:{
-                debugX = evt.buf[0];
-                debugY = evt.buf[1];
-                printf("clicked on pixel (%d, %d)\n", debugX, debugY);
+                int id = GetClicked(evt.buf[0], evt.buf[1]);
+                printf("clicked on obj with id: %d\n", id);
+                short tileX = (short)(id >> 16);
+                short tileZ = (short)(id & 0xFFFF);
+                printf("tile x: %hd, tile z: %hd\n", tileX, tileZ);
             } break;
             case EVT_KEYDOWN: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
