@@ -14,6 +14,7 @@
 #include "input.h"
 #include "logger.h"
 #include "plyfile.h"
+#include "ground.h"
 
 static Model model;
 static Model groundModel;
@@ -36,6 +37,7 @@ static ShadowMapper shadowMapper;
 static EventQueue* eventQueue;
 static InputSystem inputSystem;
 static unsigned char gammaLUT[256];
+static HeightMap heightMap;
 
 static int debugX, debugY;
 static int frameCount;
@@ -112,6 +114,19 @@ void Init(){
     plyTestGround.pos = Vec3Make(0.f, 0.f, 0.f);
     carp.id = 12;
     ground.id = 11;
+    result = HeightMapBuild(&plyTestGroundModel.plymesh, &heightMap);
+    if (result != 0) {
+        printf("%d\n", result);
+        getchar();
+    }
+    /*
+    for (int i = 0; i < 32; i++) {
+        for (int j = 0; j < 32; j++) {
+            float height = heightMap.m[j * 32 + i];
+            printf("tile %d, %d: %.3f\n", i, j, height);
+        }
+    }
+    */
     ShadowMapperUpdate(&shadowMapper);
     UpdateCamera(&cam);
     debugX, debugY = 0;
@@ -188,7 +203,8 @@ void Update(){
                 printf("clicked on obj with id: %d\n", id);
                 short tileX = (short)(id >> 16);
                 short tileZ = (short)(id & 0xFFFF);
-                printf("tile x: %hd, tile z: %hd\n", tileX, tileZ);
+                float height = heightMap.m[(tileZ + 16) * 32 + (tileX + 16)];
+                printf("tile x: %hd, tile z: %hd, height: %.3f\n", tileX, tileZ, height);
             } break;
             case EVT_KEYDOWN: {
                 InputHandleKeyEvent(&inputSystem, evt.buf[0], 1);
