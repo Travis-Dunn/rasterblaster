@@ -12,6 +12,7 @@ static struct {
 } logger = {0};
 
 static char* levelStrs[] = {
+    "Error",
     "Precision",
     "Suspicious",
     "Pathological",

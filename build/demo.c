@@ -15,6 +15,9 @@
 #include "logger.h"
 #include "plyfile.h"
 #include "ground.h"
+#include "model_manager.h"
+#include "modl.h"
+#include "deco.h"
 
 static Model model;
 static Model groundModel;
@@ -23,6 +26,7 @@ static Model cubeModel;
 static Model sphereModel;
 static Model plyCubeModel;
 static Model plyTestGroundModel;
+static Model plyTreeModel;
 static Obj3D carp;
 static Obj3D ground;
 static Obj3D rscHouse;
@@ -30,6 +34,7 @@ static Obj3D cube;
 static Obj3D sphere;
 static Obj3D plyCube;
 static Obj3D plyTestGround;
+static Obj3D plyTree;
 static Camera cam;
 static Light light[8];
 static DepthBuffer depthbuf;
@@ -49,6 +54,10 @@ void Init(){
     SetPlatformEventQueue(eventQueue);
     LoggerInit("log.txt");
     InputInit(&inputSystem);
+    ModelManagerInit();
+    ModlInit();
+    DecoInit(3, &heightMap);
+
     InitTimer(1024);
     /* Renderer */
     renderer.enableCulling = DEFAULT_ENABLE_CULLING;
@@ -77,6 +86,7 @@ void Init(){
     sphereModel.mesh = loadOBJ("models/sphere.obj");
     int result = PLYLoadFile("models/cube.ply", &plyCubeModel.plymesh);
     result = PLYLoadFile("models/test ground_new.ply", &plyTestGroundModel.plymesh);
+    result = PLYLoadFile("models/tree0.ply", &plyTreeModel.plymesh);
     if (result != 0) {
         printf("%d\n", result);
         getchar();
@@ -112,6 +122,10 @@ void Init(){
     plyTestGround.scale = Vec3Make(1.f, 1.f, 1.f);
     plyTestGround.rot = Vec3Make(0.f, 0.f, 0.f);
     plyTestGround.pos = Vec3Make(0.f, 0.f, 0.f);
+    plyTree.model = &plyTreeModel;
+    plyTree.scale = Vec3Make(1.f, 1.f, 1.f);
+    plyTree.rot = Vec3Make(0.f, 0.f, 0.f);
+    plyTree.pos = Vec3Make(0.f, 0.f, 0.f);
     carp.id = 12;
     ground.id = 11;
     result = HeightMapBuild(&plyTestGroundModel.plymesh, &heightMap);
@@ -119,6 +133,11 @@ void Init(){
         printf("%d\n", result);
         getchar();
     }
+
+    DecoMake(MODL_TREE, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0, 0);
+    DecoMake(MODL_TREE, 0.6f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 3, 0);
+    DecoMake(MODL_TREE, 1.6f, 0.f, 0.f, 0.26f, 0.f, 0.f, 0.f, 5, 2);
+
     /*
     for (int i = 0; i < 32; i++) {
         for (int j = 0; j < 32; j++) {
@@ -162,6 +181,9 @@ void Render(){
     /*
     Obj3DDrawWireframe(&cam, &plyTestGround, RGBA_INT(24, 24, 64, 255));
     */
+    Obj3DDrawVertexColor(&cam, &plyTree);
+
+    DecoDraw(&cam);
 }
 
 void debugCorner(char* str, Vec3 v){
@@ -193,6 +215,7 @@ void Update(){
     UpdateObj3DModelMatrix(&plyCube);
     UpdateObj3DModelMatrix(&sphere);
     UpdateObj3DModelMatrix(&plyTestGround);
+    UpdateObj3DModelMatrix(&plyTree);
 
     Event evt;
     while (EventQueueNotEmpty(eventQueue)){
@@ -204,6 +227,7 @@ void Update(){
                 short tileX = (short)(id >> 16);
                 short tileZ = (short)(id & 0xFFFF);
                 float height = heightMap.m[(tileZ + 16) * 32 + (tileX + 16)];
+                plyTree.pos = Vec3Make(((float)tileX + 0.5f), height, ((float)tileZ + 0.5f));
                 printf("tile x: %hd, tile z: %hd, height: %.3f\n", tileX, tileZ, height);
             } break;
             case EVT_KEYDOWN: {

@@ -8,6 +8,7 @@
 #define MAX_LOG_ENTRY_SIZE 256
 
 typedef enum {
+    LOG_ERROR,
     LOG_PRECISION,
     LOG_SUSPICIOUS,
     LOG_PATHOLOGICAL,

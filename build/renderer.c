@@ -2067,6 +2067,71 @@ void Obj3DDrawVertexColor(Camera* cam, Obj3D* obj){
     }
 }
 
+void ModelColDraw(Camera* cam, ModelCol* m, Mat4* matModel) {
+    assert(cam); assert(m); assert(matModel);
+
+    Mat4 matModelView = MatMatMul(&cam->view, matModel);
+    
+    for (int i = 0; i < m->count; i++){
+        TriCol tri = m->tris[i]; 
+        /* Convert pos to Vec4 for matrix multiplication.
+         * Get Vertex colors, which are the only per-vertex attrib we need */
+        Vec4 v0 = Vec4Make(tri.v0.pos.x, tri.v0.pos.y, tri.v0.pos.z, 1.f);
+        Vec4 v1 = Vec4Make(tri.v1.pos.x, tri.v1.pos.y, tri.v1.pos.z, 1.f);
+        Vec4 v2 = Vec4Make(tri.v2.pos.x, tri.v2.pos.y, tri.v2.pos.z, 1.f);
+        int c0 = tri.v0.color; int c1 = tri.v1.color; int c2 = tri.v2.color;
+        
+        /* transform model -> world -> view */
+        v0 = MatVertMul(&matModelView, v0);
+        v1 = MatVertMul(&matModelView, v1);
+        v2 = MatVertMul(&matModelView, v2);
+
+        /* calculate tri normal, faster than transforming the existing normals
+         * stored in the model, and you only need one normal for backface
+         * culling and flat shading. For gouraud/phong, transform the
+         * per-vertex normals */
+        Vec3 side0 = Vec3Make(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
+        Vec3 side1 = Vec3Make(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
+        Vec3 normal = Vec3Norm(Vec3Cross(side0, side1));
+        float nDotCam = Vec3Dot(normal, Vec3Norm(Vec3Make(-v0.x, -v0.y, -v0.z)));
+        
+        /* reject tris facing away from camera */
+        /* TODO: move this epsilon into a macro somewhere */
+        if (renderer.enableCulling)
+            if (nDotCam <= -0.001f) continue;
+        /* transform into clip space */
+        v0 = MatVertMul(&cam->proj, v0);
+        v1 = MatVertMul(&cam->proj, v1);
+        v2 = MatVertMul(&cam->proj, v2);
+ 
+        /* clip the triangle against the view frustum */
+        /* uses  a version of clipping code specifically for vertex coloring */
+        VertexColorVert vert0 = { v0, c0 };
+        VertexColorVert vert1 = { v1, c1 };
+        VertexColorVert vert2 = { v2, c2 };
+        VertexColorVert verts[3] = { vert0, vert1, vert2 };
+        VertexColorNGon result = VertexColorTriClip_(&verts[0]);
+        /* triangulate */
+        VertexColorTriCluster cluster = VertexColorTriangulate_(result);
+
+        for (int j = 0; j < cluster.count; j++) {
+            Tri3 ndc;
+             /* transform from clip -> NDC */
+            Tri4 pos4;
+            int colors[3];
+            pos4.v0 = cluster.tris[j].v0.pos;
+            colors[0] = cluster.tris[j].v0.color;
+            pos4.v1 = cluster.tris[j].v1.pos;
+            colors[1] = cluster.tris[j].v1.color;
+            pos4.v2 = cluster.tris[j].v2.pos;
+            colors[2] = cluster.tris[j].v2.color;
+            TransformTri4ClipNDC_(&pos4, &ndc, cam);
+
+            DrawVertexColorTri_(&ndc, &colors[0]);
+        }
+    }
+}
+
 static inline void DrawVertexColorTri_(Tri3* tri, int c[3]){
     TransformTriNDCFloatScreen_(tri);      
     int minX = (int)floorf  (fminf(fminf(tri->v0.x, tri->v1.x), tri->v2.x));
