@@ -235,6 +235,94 @@ cleanup:
     return ret;
 }
 
+int ModelCol16LoadPLY(ModelCol16* model, char* filename) {
+    assert(filename); assert(model);
+
+    int ret;
+
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        ret = FILE_NOT_FOUND;
+        goto cleanup;
+    }
+
+    model->tris = 0;
+    model->count = 0;
+    model->init = 0;
+
+    int vertexCount, faceCount;
+    ret = ParseHeader_(file, &vertexCount, &faceCount);
+    if (ret != SUCCESS) goto cleanup;
+
+    VertCol16* vertices = (VertCol16*)(malloc(vertexCount * sizeof(VertCol16)));
+    if (!vertices) {
+        ret = ALLOCATION_FAILURE;
+        goto cleanup;
+    }
+
+    char line[256];
+    for (int i = 0; i < vertexCount; i++) {
+        if (!fgets(line, sizeof(line), file)) {
+            ret = UNEXPECTED_EOF;
+            goto cleanup;
+        }
+
+        float x, y, z;
+        unsigned int r, g, b, a;
+        int parsed = sscanf(line, "%f %f %f %u %u %u %u",
+                &x, &y, &z, &r, &g, &b, &a);
+        if (parsed != 7) {
+            ret = INCOMPATIBLE_VERTEX_LINE_FORMAT;
+            goto cleanup;
+        }
+
+        vertices[i].pos[0] = FLOAT_TO_SF610(x);
+        vertices[i].pos[1] = FLOAT_TO_SF610(y);
+        vertices[i].pos[2] = FLOAT_TO_SF610(z);
+        vertices[i].color = RGB565_MAKE(r, g, b);
+    }
+    model->count = faceCount;
+    model->tris = (TriCol16*)(malloc(model->count * sizeof(TriCol16)));
+
+    if (!model->tris) {
+        ret = ALLOCATION_FAILURE;
+        goto cleanup;
+    }
+
+    for (int i = 0; i < faceCount; i++) {
+        if (!fgets(line, sizeof(line), file)) {
+            ret = UNEXPECTED_EOF;
+            goto cleanup;
+        }
+
+        int idx0, idx1, idx2;
+        ret = ParseFaceLine_(line, &vertexCount, &idx0, &idx1, &idx2);
+        if (ret != SUCCESS) goto cleanup;
+
+        model->tris[i].v0 = vertices[idx0];
+        model->tris[i].v1 = vertices[idx1];
+        model->tris[i].v2 = vertices[idx2];
+    } 
+    model->init = 1;
+
+cleanup:
+    /* TODO: these braces are not necessary, they're only here because my vim
+     * config shits the bed otherwise. Not for all one line if statements, and I
+     * don't know why. Fix the vim config. */
+    if (vertices) { free(vertices); }
+    if (file) { fclose(file); }
+    if (ret != SUCCESS) {
+        if (model->tris) {
+            free(model->tris);
+            model->tris = 0;
+        }
+        model->count = 0;
+        model->init = 0;
+    }
+    
+    return ret;
+}
+
 int ModelTex_stubLoadPLY(ModelTex_stub* model, char* filename) {
     assert(filename); assert(model);
 

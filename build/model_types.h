@@ -3,6 +3,8 @@
 
 #include "arithmetic.h"
 #include "Texture.h"
+#include "rgb565.h"
+#include "sf610.h"
 
 /* Some of these (e.g. ModelCol) require only the data in the 3d file, and are
  * complete after being built by the "Load from file" function.
@@ -27,6 +29,22 @@ typedef struct {
     int count;
     int init;
 } ModelCol;
+
+/* Position and vertex color, but uses the 6.10 fixed point format
+ * defined in sf610.h for position, and the RGB565 format defined in rgb565.h
+ * for color. */
+typedef struct {
+    short pos[3];
+    short color;
+} VertCol16;
+
+typedef struct { VertCol16 v0, v1, v2; } TriCol16;
+
+typedef struct {
+    TriCol16* tris;
+    int count;
+    int init;
+} ModelCol16;
 
 /* Position and texture mapping */
 typedef struct {

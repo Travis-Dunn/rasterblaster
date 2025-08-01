@@ -19,7 +19,6 @@
 #include "modl.h"
 #include "deco.h"
 
-static Model model;
 static Model groundModel;
 static Model rscHouseModel;
 static Model cubeModel;
@@ -54,7 +53,7 @@ void Init(){
     SetPlatformEventQueue(eventQueue);
     LoggerInit("log.txt");
     InputInit(&inputSystem);
-    ModelManagerInit();
+    ModelManagerInit(LOAD_ASSETS_AS_R8B8G8A8);
     ModlInit();
     DecoInit(3, &heightMap);
 
@@ -77,8 +76,6 @@ void Init(){
     cam.farClip = 20.f;
     light[0] = MakeDirectional(192, 192, 192, Vec3Norm(Vec3Make(1, -.5f, -1)));
     light[1] = MakeAmbient(64, 64, 64);
-    model.mesh = loadOBJ("models/carp.obj");
-    model.tex = LoadBimg("textures/carp.bimg");
     groundModel.mesh = loadOBJ("models/ground.obj");
     groundModel.tex = LoadBimg("textures/dirt.bimg");
     rscHouseModel.mesh = loadOBJ("models/rsc house.obj");
@@ -94,10 +91,6 @@ void Init(){
     sphereModel.tex = 0;
     cubeModel.mesh = loadOBJ("models/cube.obj");
     cubeModel.tex = 0;
-    carp.model = &model;
-    carp.scale = Vec3Make(15.f, 15.f, 15.f);
-    carp.rot = Vec3Make(0.f, 0.f, 0.f);
-    carp.pos = Vec3Make(0.f, 0.f, -5.f);
     ground.model = &groundModel;
     ground.scale = Vec3Make(1.f, 1.f, 1.f);
     ground.rot = Vec3Make(0.f, 0.f, 0.f);
@@ -138,14 +131,6 @@ void Init(){
     DecoMake(MODL_TREE, 0.6f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 3, 0);
     DecoMake(MODL_TREE, 1.6f, 0.f, 0.f, 0.26f, 0.f, 0.f, 0.f, 5, 2);
 
-    /*
-    for (int i = 0; i < 32; i++) {
-        for (int j = 0; j < 32; j++) {
-            float height = heightMap.m[j * 32 + i];
-            printf("tile %d, %d: %.3f\n", i, j, height);
-        }
-    }
-    */
     ShadowMapperUpdate(&shadowMapper);
     UpdateCamera(&cam);
     debugX, debugY = 0;
@@ -157,16 +142,6 @@ void Render(){
     DepthBufferClear(&renderer.db, 1.f);
     ClearPickbuf();
     ShadowMapperClear(&shadowMapper, 1.f);
-
-    /* some spinning */
-    carp.rot.x += 0.1f * timer.dt;
-    carp.rot.y += -0.2f * timer.dt;
-    carp.rot.z += 0.1f * timer.dt;
-    /*
-    cube.rot.x += 0.1f * timer.dt;
-    cube.rot.y += -0.1f * timer.dt;
-    cube.rot.z += 0.1f * timer.dt;
-    */
 
     /*
     ShadowMapperRender(&shadowMapper, &cube);

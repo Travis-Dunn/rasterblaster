@@ -1,0 +1,5 @@
+Start time: Fri Aug 01 14:54:54 2025
+
+0, Info, Model manager loaded [tree0_experimental.ply] as 'ModelCol'
+
+Entries: 1. End of log

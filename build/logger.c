@@ -16,7 +16,8 @@ static char* levelStrs[] = {
     "Precision",
     "Suspicious",
     "Pathological",
-    "Info"
+    "Info",
+    "Warning",
 };
 
 
@@ -56,13 +57,27 @@ void LoggerShutdown(){
 void LogStr(LogLevel level, char* str){
     assert(logger.file);
 
-    char entry[MAX_LOG_ENTRY_SIZE];
-    int entryLen = sprintf(entry, "%d, %s, %s\n", logger.entryCount++,
-            levelStrs[level], str);
+    char entry[MAX_LOG_ENTRY_SIZE + 16];
+    char temp[MAX_LOG_ENTRY_SIZE];
+    int trunc, len;
+    
+    strncpy(temp, str, MAX_LOG_ENTRY_SIZE);
 
-    if (logger.idx + entryLen >= LOG_BUFFER_SIZE) LoggerFlush();
-    memcpy(logger.buf + logger.idx, entry, entryLen);
-    logger.idx += entryLen;
+    if (trunc = (temp[MAX_LOG_ENTRY_SIZE - 1] != '\0')) {
+        len = sprintf(entry, "%d, %s, Following message was truncated\n",
+                logger.entryCount++, levelStrs[LOG_WARNING]);
+        if (logger.idx + len >= LOG_BUFFER_SIZE) LoggerFlush();
+        memcpy(logger.buf + logger.idx, entry, len);
+        logger.idx += len;
+
+        temp[MAX_LOG_ENTRY_SIZE - 1] = '\0';
+    }
+    len = sprintf(entry, "%d, %s, %s\n", logger.entryCount++,
+            levelStrs[level], temp);
+
+    if (logger.idx + len >= LOG_BUFFER_SIZE) LoggerFlush();
+    memcpy(logger.buf + logger.idx, entry, len);
+    logger.idx += len;
 }
 
 void LogNDCValidation(LogLevel level, float x, float y, float z, float error){

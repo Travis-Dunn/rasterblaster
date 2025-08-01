@@ -28,6 +28,7 @@ void PLYMeshFree(PLY_Mesh* mesh);
 
 /* new code */
 int      ModelColLoadPLY        (ModelCol* model, char* filename);
+int      ModelCol16LoadPLY      (ModelCol16* model, char* filename);
 int      ModelTex_stubLoadPLY   (ModelTex_stub* model, char* filename);
 
 /* internal */

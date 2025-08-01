@@ -2178,6 +2178,14 @@ static inline void DrawVertexColorTri_(Tri3* tri, int c[3]){
             unsigned char rg = (unsigned char)(l0 * g0 + l1 * g1 + l2 * g2);
             unsigned char rb = (unsigned char)(l0 * b0 + l1 * b1 + l2 * b2);
             unsigned char ra = (unsigned char)(l0 * a0 + l1 * a1 + l2 * a2);
+            
+            unsigned char r5 = rr >> 3;
+            unsigned char g6 = rg >> 2;
+            unsigned char b5 = rb >> 3;
+            rr = (r5 << 3) | (r5 >> 2);
+            rg = (g6 << 2) | (g6 >> 4);
+            rb = (b5 << 3) | (b5 >> 2);
+
             int color = RGBA_INT(rr, rg, rb, ra);
 
             PutPixel(x, y, color);

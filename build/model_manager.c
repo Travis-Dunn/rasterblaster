@@ -6,21 +6,36 @@
 #define MODELS_DIR          "models"
 
 /* return codes */
+#define SUCCESS              0
 #define NO_FILES_FOUND      -1
 #define ALLOCATION_FAILURE  -2
+#define FAILURE             -3
 
-/* TODO: LOGGING! More important than most places, errors loading files are a 
- * fact of life */
-
-typedef enum {
+typedef enum { /* add here */
     TYPE_COL,
     TYPE_TEX_STUB,
-    TYPE_UNKNOWN,
+    TYPE_COUNT,
 } ModelType;
 
-static int modelManagerInit = 0;
+#define MODEL_TYPE_NAME_MAX_SIZE 32
 
-static ModelCol* mColArr;
+#define MCOL_TYPE_NAME      "ModelCol" /* add here */
+#define MTEX_STUB_TYPE_NAME "ModelTex_stub"
+
+static char* modelTypeNames[TYPE_COUNT] = { /* add here */
+    MCOL_TYPE_NAME,
+    MTEX_STUB_TYPE_NAME,
+};
+
+static char ModelTypeNameSizeCheck[
+    (sizeof(MCOL_TYPE_NAME) <= MODEL_TYPE_NAME_MAX_SIZE && /* add here */
+     sizeof(MTEX_STUB_TYPE_NAME) <= MODEL_TYPE_NAME_MAX_SIZE) ? 1 : -1
+];
+
+static int modelManagerInit = 0;
+static AssetLoadingColorMode assetColorMode;
+
+static ModelCol* mColArr; /* add here */
 static int mColCount;
 static char (*mColFilenames)[MAX_FILENAME];
 
@@ -28,9 +43,9 @@ static ModelTex_stub* mTex_stubArr;
 static int mTex_stubCount;
 static char (*mTex_stubFilenames)[MAX_FILENAME];
 
-static ModelType DetermineModelType(char* filename) {
+static ModelType DetermineModelType(char* filename) { /* update this */
     FILE* file = fopen(filename, "r");
-    if (!file) return TYPE_UNKNOWN;
+    if (!file)  { return TYPE_COUNT; } /* treat as error */
 
     char line[256];
     int hasColor = 0;
@@ -52,11 +67,49 @@ static ModelType DetermineModelType(char* filename) {
     if (hasColor && !hasUV) return TYPE_COL;
     if (hasUV && !hasColor) return TYPE_TEX_STUB;
 
-    return TYPE_UNKNOWN;
+    return TYPE_COUNT; /* treat as error */
 }
 
-int ModelManagerInit() {
+static inline int HandleIdxBoundsError_(int idx, int count, char* cFileName,
+        ModelType type) {
+    assert(cFileName);
+    if (idx < count) return SUCCESS;
+    char str[MAX_LOG_ENTRY_SIZE]; /* macro from logger.h */
+    sprintf(str, "Model manager: Out of bounds index [%d], count [%d],"
+            "ModelType [%d], filename [%s]\n", idx, count, type, cFileName);
+    LogStr(LOG_ERROR, str);
+    return FAILURE;
+}
+
+static inline void HandleLoadResult_(int ret, char* filename, int* idx,
+        char (*filenames)[MAX_FILENAME], ModelType type) {
+    assert(filename);
+    assert(idx);
+    assert(filenames);
+    assert(type >= 0);
+    assert(type < sizeof(modelTypeNames) / sizeof(modelTypeNames[0]));
+
+    char* modelTypeName = modelTypeNames[type];
+    char str[MAX_LOG_ENTRY_SIZE]; /* macro from logger.h */
+
+    if (ret) {
+        sprintf(str, "Error loading [%s] as [%s]: [%d]\n", filename,
+                modelTypeName, ret);
+        LogStr(LOG_ERROR, str);
+    } else {
+        strncpy(filenames[*idx], filename, MAX_FILENAME - 1);
+        filenames[(*idx)++][MAX_FILENAME - 1] = '\0';
+        sprintf(str, "Model manager loaded [%s] as '%s'\n", filename,
+                modelTypeName);
+        LogStr(LOG_INFO, str);
+    }
+}
+
+int ModelManagerInit(AssetLoadingColorMode acm) { /* update this too */
     assert(!modelManagerInit);
+
+    assetColorMode = acm;
+
     WIN32_FIND_DATA findData;
     HANDLE hFind;
     char searchPath[MAX_PATH];
@@ -118,38 +171,16 @@ int ModelManagerInit() {
             ModelType type = DetermineModelType(fullPath);
             switch (type) {
             case TYPE_COL: {
-                if (mColIdx >= mColCount) {
-                    char str[128];
-                    sprintf(str,
-                            "Model manager error: Out of bounds index [%d]\n",
-                            mColIdx);
-                    LogStr(LOG_ERROR, str);
-                    break;
-                }
+                if (HandleIdxBoundsError_(mColIdx, mColCount,
+                    findData.cFileName, type)) break;
                 int ret = ModelColLoadPLY(&mColArr[mColIdx], fullPath);
-                if (ret) {
-                    char str[128];
-                    sprintf(str, "Error loading .ply file as 'ModelCol': %d\n", ret);
-                    LogStr(LOG_ERROR, str);
-                } else {
-                    strncpy(mColFilenames[mColIdx], findData.cFileName,
-                            MAX_FILENAME - 1);
-                    mColFilenames[mColIdx++][MAX_FILENAME - 1] = '\0';
-                    char str[128];
-                    sprintf(str, "Model manager loaded [%s] as 'ModelCol'\n",
-                            findData.cFileName);
-                    LogStr(LOG_INFO, str);
-                }
+                HandleLoadResult_(ret, findData.cFileName, &mColIdx,
+                        mColFilenames, TYPE_COL);
             } break;
             case TYPE_TEX_STUB: {
-                if (mTex_stubIdx >= mTex_stubCount) {
-                    char str[128];
-                    sprintf(str,
-                            "Model manager error: Out of bounds index [%d]\n",
-                            mTex_stubIdx);
-                    LogStr(LOG_ERROR, str);
-                    break; 
-                }
+                if (HandleIdxBoundsError_(mTex_stubIdx, mTex_stubCount,
+                    findData.cFileName, type)) break;
+ 
                 int ret = ModelTex_stubLoadPLY(&mTex_stubArr[mTex_stubIdx],
                         fullPath);
                 if (ret) {
@@ -178,7 +209,7 @@ int ModelManagerInit() {
     modelManagerInit = 1; 
     return 0;
 }
-
+/* lastly, add a getter */
 ModelCol* GetModelCol(char* filename) {
     for (int i = 0; i < mColCount; i++) {
         if (strcmp(mColFilenames[i], filename) == 0) {
